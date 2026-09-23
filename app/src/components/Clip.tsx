@@ -6,12 +6,17 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
  * VP9 → VP8 at two sizes → the original upload, and the browser plays the first one it can.
  */
 export function clipSources(url: string): string[] {
+  // Bundled clip: H.264 MP4 plays everywhere (incl. iPhone); the WebM original is the fallback.
+  if (url.startsWith('/media/') && url.endsWith('.mp4')) return [url, url.replace(/\.mp4$/, '.webm')];
   const m = /^(https:\/\/upload\.wikimedia\.org\/wikipedia\/commons)\/transcoded\/(.+?)\/([^/]+)\.480p\.vp9\.webm$/.exec(url);
   if (!m) return [url];
   const [, base, path, file] = m;
   const t = (suffix: string) => `${base}/transcoded/${path}/${file}.${suffix}`;
   return [t('480p.vp9.webm'), t('480p.webm'), t('360p.vp9.webm'), t('360p.webm'), `${base}/${path}`];
 }
+
+/** Local clips ship with a still frame, shown until the video starts. */
+const posterOf = (u: string) => (u.startsWith('/media/') ? u.replace(/\.mp4$/, '.jpg') : undefined);
 
 const typeOf = (u: string) => (u.endsWith('.webm') ? 'video/webm' : u.endsWith('.mp4') ? 'video/mp4' : undefined);
 
@@ -65,6 +70,7 @@ export function Clip({ src, ambient = false, fit = 'cover', label }: Props) {
         playsInline
         controls={!ambient && state === 'playing'}
         preload="auto"
+        poster={posterOf(src)}
         onPlaying={() => setState('playing')}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: fit, background: ambient ? 'transparent' : '#000', opacity: state === 'playing' ? 1 : 0, transition: 'opacity .4s' }}
       >
