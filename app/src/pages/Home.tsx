@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { COUNTRIES, FACILITIES, SPORTS, STORIES, VENUES, DAY_START, countryById, sportById } from '../../shared/data.ts';
-import { artBg, countryPhoto, useAutoplay, useHub } from '../lib/hub.tsx';
+import { artBg, countryPhoto, useHub } from '../lib/hub.tsx';
+import { Clip } from '../components/Clip.tsx';
 import { KilimPattern, PinIcon, useUnseenUpdates } from '../components/chrome.tsx';
 
 const PX_PER_MIN = 2;
@@ -23,10 +24,12 @@ export default function Home() {
 }
 
 function Hero() {
-  const { live, upNext, clock, days, settings } = useHub();
-  const featured = live[0];
+  const { live, upNext, upcoming, clock, days, settings } = useHub();
+  // Lead with a live session that has a clip, so the card shows moving footage whenever it can.
+  const featured = live.find((s) => s.video) ?? live[0];
+  const others = live.filter((s) => s !== featured);
+  const preview = upcoming.find((s) => s.video);
   const navigate = useNavigate();
-  const vidRef = useAutoplay(featured?.video);
   const noLiveNote = clock.phase === 'before'
     ? `The event opens ${days[0].date}. First up: ${upNext[0]?.title ?? ''} at ${upNext[0]?.startT ?? ''}, ${upNext[0]?.venueName ?? ''}.`
     : upNext[0] ? `Next: ${upNext[0].title} at ${upNext[0].startT}, ${upNext[0].venueName}`
@@ -55,7 +58,7 @@ function Hero() {
               <div className="feature" role="link" tabIndex={0} onClick={(e) => { if (!(e.target as HTMLElement).closest('a')) navigate(featured.href); }}
                 onKeyDown={(e) => e.key === 'Enter' && navigate(featured.href)}>
                 <div className="feature-art" style={{ background: featured.bg }} />
-                {featured.video && <video ref={vidRef} src={featured.video} muted loop playsInline autoPlay preload="metadata" />}
+                {featured.video && <Clip key={featured.id} src={featured.video} ambient label={`${featured.title}, live`} />}
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(10,8,6,.5) 0%,rgba(10,8,6,0) 30%,rgba(10,8,6,.15) 55%,rgba(10,8,6,.92) 100%)' }} />
                 <div style={{ position: 'absolute', left: 24, right: 24, top: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#E1302A', color: '#fff', borderRadius: 7, padding: '7px 12px 7px 10px', fontWeight: 700, fontSize: 13, letterSpacing: '.12em' }}>
@@ -77,9 +80,19 @@ function Hero() {
                 </div>
               </div>
             ) : (
-              <div style={{ height: 460, borderRadius: 24, border: '1px dashed rgba(255,255,255,.25)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 24 }}>
-                <div className="display" style={{ fontWeight: 800, fontSize: 34 }}>No demonstration live right now</div>
-                <div style={{ fontSize: 15, color: 'rgba(255,255,255,.65)', marginTop: 8 }}>{noLiveNote}</div>
+              <div style={{ position: 'relative', height: 460, borderRadius: 24, overflow: 'hidden', border: '1px dashed rgba(255,255,255,.25)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 24 }}>
+                {preview?.video && (
+                  <>
+                    <div className="feature-art" style={{ background: preview.bg, opacity: 0.35 }} />
+                    <div style={{ position: 'absolute', inset: 0, opacity: 0.6 }}><Clip key={preview.id} src={preview.video} ambient label={`${preview.title} preview`} /></div>
+                    <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at center, rgba(19,16,13,.45), rgba(19,16,13,.85))' }} />
+                  </>
+                )}
+                <div style={{ position: 'relative' }}>
+                  {preview && <div className="mono" style={{ fontSize: 11.5, letterSpacing: '.14em', color: '#F3A53A', textTransform: 'uppercase', marginBottom: 10 }}>Coming up · {preview.title} · {preview.startT}</div>}
+                  <div className="display" style={{ fontWeight: 800, fontSize: 34 }}>No demonstration live right now</div>
+                  <div style={{ fontSize: 15, color: 'rgba(255,255,255,.65)', marginTop: 8 }}>{noLiveNote}</div>
+                </div>
               </div>
             )}
           </div>
@@ -110,11 +123,11 @@ function Hero() {
           </div>
         </div>
 
-        {live.length > 1 && (
+        {others.length > 0 && (
           <div style={{ marginTop: 22 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.12em', color: 'rgba(255,255,255,.55)', textTransform: 'uppercase', marginBottom: 10 }}>Also live at other locations</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: 12 }}>
-              {live.slice(1).map((s) => (
+              {others.map((s) => (
                 <Link key={s.id} to={s.href} className="tile-dark">
                   <div style={{ width: 64, height: 64, borderRadius: 11, flexShrink: 0, background: s.bg }} />
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -342,7 +355,7 @@ function UpdatesAndStories() {
               <div key={m.id} style={{ borderRadius: 20, overflow: 'hidden', background: '#16120E', color: '#fff' }}>
                 <div style={{ position: 'relative', height: 170, background: artBg(m.photo, c.color) }}>
                   {on ? (
-                    <video src={m.video} controls playsInline loop autoPlay style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <Clip src={m.video} label={m.title} />
                   ) : (
                     <button onClick={() => setPlaying(m.id)} aria-label={`Play: ${m.title}`} style={{ position: 'absolute', inset: 0, width: '100%', background: 'linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.45))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ width: 58, height: 58, borderRadius: '50%', background: 'rgba(255,255,255,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,.35)' }}>
