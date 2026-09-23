@@ -4,7 +4,10 @@ import type { NextFunction, Request, Response } from 'express';
 
 const isProd = process.env.NODE_ENV === 'production';
 const PASSWORD = process.env.ADMIN_PASSWORD ?? (isProd ? '' : 'admin');
-if (!PASSWORD) throw new Error('ADMIN_PASSWORD must be set in production');
+if (!PASSWORD) {
+  console.error('\n  Set an admin password first, e.g.\n    macOS/Linux:  ADMIN_PASSWORD=choose-one npm start\n    Windows (PowerShell):  $env:ADMIN_PASSWORD="choose-one"; npm start\n');
+  process.exit(1);
+}
 if (!process.env.ADMIN_PASSWORD) console.warn('[auth] ADMIN_PASSWORD not set — using "admin" for local development');
 
 // A fixed secret keeps admins signed in across restarts; a random one signs everyone out on restart.

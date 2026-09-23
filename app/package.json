@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n api,web -c yellow,cyan \"tsx watch server/index.ts\" \"vite\"",
-    "build": "tsc -b && vite build",
-    "start": "NODE_ENV=production tsx server/index.ts",
+    "predev": "node server/check-node.cjs",
+    "dev": "concurrently -k -n api,web -c yellow,cyan \"tsx watch server/index.ts\" \"vite --open\"",
+    "build": "node server/check-node.cjs && tsc -b && vite build",
+    "start": "tsx server/start.ts",
     "typecheck": "tsc -b"
   },
   "dependencies": {
@@ -27,5 +28,8 @@
     "concurrently": "^10.0.5",
     "typescript": "^7.0.2",
     "vite": "^8.3.0"
+  },
+  "engines": {
+    "node": ">=20.19"
   }
 }

@@ -8,10 +8,19 @@ The public Live Hub website and its Event Control admin, built from the Claude D
 
 ## Run
 
+Needs **Node.js 22 LTS** (or 20.19+) from https://nodejs.org. Run these from the project root (the folder containing `app/`) or from inside `app/`:
+
 ```bash
-npm install
-npm run dev                 # API on :8787 + Vite on :5173 (admin password "admin")
-npm run build && ADMIN_PASSWORD=… SESSION_SECRET=… npm start   # production, serves dist/ on :8787
+npm install        # installs everything
+npm run dev        # opens http://localhost:5173 (admin: /admin, password "admin")
+```
+
+Production (serves the built site and the API on one port, :8787):
+
+```bash
+npm run build
+ADMIN_PASSWORD=choose-one npm start                       # macOS / Linux
+$env:ADMIN_PASSWORD="choose-one"; npm start               # Windows PowerShell
 ```
 
 | Env var | Default | Purpose |
