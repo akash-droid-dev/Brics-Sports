@@ -11,6 +11,8 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@netlify/blobs": "^11.1.0",
+    "@netlify/functions": "^6.0.0",
     "express": "^5.2.1",
     "qrcode": "^1.5.4",
     "react": "^19.3.0",
