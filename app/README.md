@@ -23,12 +23,34 @@ ADMIN_PASSWORD=choose-one npm start                       # macOS / Linux
 $env:ADMIN_PASSWORD="choose-one"; npm start               # Windows PowerShell
 ```
 
+## Deploy to Netlify (free)
+
+The repo is ready for Netlify: `netlify.toml` (repo root) builds `app/`. The API runs as a Netlify Function (`app/netlify/functions/api.ts`), and the live state lives in **Netlify Blobs**, so nothing else needs setting up. Netlify can't keep connections open, so pages check for changes every ~5 seconds instead of instantly. Those checks are served from Netlify's CDN, which is cleared on every admin change, so a busy event stays well within the free tier.
+
+**Netlify Drop (drag-and-drop) won't work:** it only uploads static files, so the admin and live updates would be missing. Use one of these instead:
+
+**A. From your computer (Netlify CLI)**, run in the project root, the folder containing `netlify.toml`:
+
+```bash
+npm install
+npx netlify-cli login                        # opens the browser once
+npx netlify-cli init                         # "Create & configure a new project", pick your team and a site name
+npx netlify-cli env:set ADMIN_PASSWORD "choose-a-strong-one"
+npx netlify-cli deploy --build --prod
+```
+
+Your site is then live at `https://<site-name>.netlify.app`, with the admin at `/admin`.
+
+**B. From GitHub:** push this repo, then in Netlify choose **Add new project → Import an existing project**, pick the repo and deploy; the build settings come from `netlify.toml`. Then open **Project configuration → Environment variables**, add `ADMIN_PASSWORD`, and redeploy.
+
+After deploying, set **Public URL** in Event control → Event settings to your `<site-name>.netlify.app` address, so the QR code points at the live site.
+
 | Env var | Default | Purpose |
 |---|---|---|
 | `ADMIN_PASSWORD` | `admin` in dev, **required** in production | Event control password |
-| `SESSION_SECRET` | random per boot | Signs admin cookies. Set it so admins stay signed in across restarts |
+| `SESSION_SECRET` | derived from the password | Signs admin cookies. Changing the password signs everyone out |
 | `PORT` | `8787` | HTTP port |
-| `DATA_FILE` | `./data/live-state.json` | Where live state is stored |
+| `DATA_FILE` | `./data/live-state.json` | Where live state is stored (Node server; Netlify uses Blobs) |
 | `EVENT_TIMEZONE`, `EVENT_START_DATE`, `EVENT_NAME`, `PUBLIC_URL` | `UTC`, `2026-10-15`, `BRICS SPORTS`, `traditionalsports.live` | First-boot seed only. After that, edit them in Event control |
 
 **Preview a moment in the event:** add `?at=2026-10-16T14:42` to any public URL. The clock starts at that event-local time and keeps running.
@@ -38,4 +60,4 @@ $env:ADMIN_PASSWORD="choose-one"; npm start               # Windows PowerShell
 - Countries, sports, venues, the programme and the six sample updates are sample content from the design. They live in `shared/data.ts`. The sample updates appear on Day 2 at their listed times.
 - The Sumo clips (the Live Now card, the Sumo sport page and the first cultural story) come from the Claude Design pack. They're bundled in `public/media` as MP4 (for all browsers, including iPhone) and WebM, so they play offline. Other photos and clips load from Wikimedia Commons, and fonts load from Google Fonts.
 - The Live Now card always shows footage. It leads with Sumo when Sumo is live, otherwise another live session with a clip. When nothing is live it shows the next session with a clip, badged **UP NEXT** rather than LIVE.
-- Storage is a single JSON file, which is fine for one server instance. If you run several instances, move it to a database behind `server/store.ts`.
+- The API lives in `server/core.ts` as a plain `Request → Response` handler, shared by the Node server (`server/index.ts`: JSON file + instant push) and Netlify (`app/netlify/functions/api.ts`: Blobs + 5-second refresh). Writes are conditional, so two admins publishing at once don't overwrite each other.

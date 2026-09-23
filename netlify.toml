@@ -1,0 +1,23 @@
+# Netlify: builds the site from app/ and serves the API from app/netlify/functions.
+[build]
+  base = "app"
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Single-page app: every page URL loads index.html (the API is routed by the function's config).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
