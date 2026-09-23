@@ -1,6 +1,8 @@
 // Event content ported from the Claude Design prototype (project/hub-data.js).
 // Countries, sports, venues, facilities and the programme are sample content.
 // Replace them here with the real lists; the rest of the app reads only from this file.
+// The two Sumo clips are bundled in public/media (taken from the Claude Design pack) so they
+// play without reaching Wikimedia; the other clips stream from Wikimedia Commons.
 
 const W = (p: string, w = 960) => { const f = p.split('/').pop(); return `https://upload.wikimedia.org/wikipedia/commons/thumb/${p}/${w}px-${f}`; };
 const V = (p: string) => { const f = p.split('/').pop(); return `https://upload.wikimedia.org/wikipedia/commons/transcoded/${p}/${f}.480p.vp9.webm`; };
@@ -36,7 +38,7 @@ export const SPORTS: Sport[] = [
   { id: 'kabaddi', c: 'ind', name: 'Kabaddi', type: 'Team', photo: W('1/1f/Iran_men%27s_national_kabaddi_team_13970602000432636707284535394012_98208.jpg'), video: V('5/53/Kabaddi-japan-2015-10-4.webm'), about: 'A raider crosses into the opposing half on a single breath, tags defenders and races back before being tackled.' },
   { id: 'khokho', c: 'ind', name: 'Kho Kho', type: 'Team', photo: W('2/2c/Kho_Kho_game_at_a_Government_school_in_Haryana%2C_India.jpg'), about: 'A chase game: seated defenders rise when tapped and the chasers change direction only at the poles.' },
   { id: 'mallakhamb', c: 'ind', name: 'Mallakhamb', type: 'Skill', photo: W('3/39/Malakhambha_pradarshana_Nudisir_2015_02.JPG'), about: 'Gymnasts perform holds, climbs and inversions on a vertical wooden pole or a hanging rope.' },
-  { id: 'sumo', c: 'jpn', name: 'Sumo', type: 'Wrestling', photo: W('a/ac/Asashoryu_fight_Jan08.JPG'), video: V('f/f2/Sumo.webm'), about: 'Two rikishi meet in a clay ring. Force the opponent out, or make anything but the soles of their feet touch the ground.' },
+  { id: 'sumo', c: 'jpn', name: 'Sumo', type: 'Wrestling', photo: W('a/ac/Asashoryu_fight_Jan08.JPG'), video: '/media/sumo-bout.mp4', about: 'Two rikishi meet in a clay ring. Force the opponent out, or make anything but the soles of their feet touch the ground.' },
   { id: 'kendo', c: 'jpn', name: 'Kendo', type: 'Combat', photo: W('f/ff/2022_All_Japan_Kendo_Championship_Tetsuhiko_Murakami4.jpg'), about: 'Bamboo-sword fencing in armour. Points need a clean strike, correct posture and a spirited shout.' },
   { id: 'kyudo', c: 'jpn', name: 'Kyūdō', type: 'Target', photo: W('2/29/Professor_Inagaki_Genshiro.jpg'), about: 'The way of the bow: a tall asymmetric yumi and eight prescribed stages for every shot.' },
   { id: 'bokh', c: 'mng', name: 'Bökh', type: 'Wrestling', photo: W('3/3e/Men_Traditional_Wrestling_Outfits_Stage_a_Display_as_Secretary_Kerry_Attends_a_%22Mini-Nadaam%22_in_a_Field_Outside_Ulaanbaatar_%2826934055503%29.jpg'), about: 'No weight classes, no ring. A bout ends when any part of the body other than feet or hands touches the ground.' },
@@ -132,7 +134,7 @@ export const SAMPLE_UPDATES: { id: string; type: UpdateType; day: number; t: num
 ];
 
 export const STORIES: Story[] = [
-  { id: 's1', title: 'Salt, stamp and clash: the rituals before a sumo bout', sport: 'sumo', video: V('1/1e/Sumo_stable_practice%2C_Tokyo_2014-08-19.webm'), len: '0:26', photo: W('a/ac/Asashoryu_fight_Jan08.JPG') },
+  { id: 's1', title: 'Salt, stamp and clash: the rituals before a sumo bout', sport: 'sumo', video: '/media/sumo-stable.mp4', len: '0:26', photo: W('a/ac/Asashoryu_fight_Jan08.JPG') },
   { id: 's2', title: 'One breath, one raid: learning kabaddi in a day', sport: 'kabaddi', video: V('5/53/Kabaddi-japan-2015-10-4.webm'), len: '0:11', photo: W('1/1f/Iran_men%27s_national_kabaddi_team_13970602000432636707284535394012_98208.jpg') },
   { id: 's3', title: 'Inside the roda: music as the referee in capoeira', sport: 'capoeira', video: V('4/46/Capoeira_no_terreiro_de_jesus.webm'), len: '0:23', photo: W('1/19/Rugendasroda.jpg') },
 ];

@@ -36,5 +36,6 @@ $env:ADMIN_PASSWORD="choose-one"; npm start               # Windows PowerShell
 ## Notes
 
 - Countries, sports, venues, the programme and the six sample updates are sample content from the design. They live in `shared/data.ts`. The sample updates appear on Day 2 at their listed times.
-- Photos and clips load from Wikimedia Commons, and fonts load from Google Fonts.
+- The Sumo clips (the Live Now card, the Sumo sport page and the first cultural story) come from the Claude Design pack. They're bundled in `public/media` as MP4 (for all browsers, including iPhone) and WebM, so they play offline. Other photos and clips load from Wikimedia Commons, and fonts load from Google Fonts.
+- The Live Now card always shows footage. It leads with Sumo when Sumo is live, otherwise another live session with a clip. When nothing is live it shows the next session with a clip, badged **UP NEXT** rather than LIVE.
 - Storage is a single JSON file, which is fine for one server instance. If you run several instances, move it to a database behind `server/store.ts`.

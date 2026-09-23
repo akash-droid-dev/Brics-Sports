@@ -265,7 +265,7 @@ export function SportDetail() {
     <div className="page">
       <section style={{ position: 'relative', height: 480, background: vm.bg, color: '#fff', overflow: 'hidden' }}>
         {playing && sp.video ? (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: '#000' }}><Clip src={sp.video} fit="contain" label={`${sp.name} clip`} /></div>
+          <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: '#000' }}><Clip src={sp.video} label={`${sp.name} clip`} /></div>
         ) : (
           <>
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(10,8,6,.4),rgba(10,8,6,.05) 40%,rgba(10,8,6,.92))' }} />

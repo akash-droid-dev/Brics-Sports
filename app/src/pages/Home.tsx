@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { COUNTRIES, FACILITIES, SPORTS, STORIES, VENUES, DAY_START, countryById, sportById } from '../../shared/data.ts';
-import { artBg, countryPhoto, useHub } from '../lib/hub.tsx';
+import { artBg, countryPhoto, useHub, type SessionView } from '../lib/hub.tsx';
 import { Clip } from '../components/Clip.tsx';
 import { KilimPattern, PinIcon, useUnseenUpdates } from '../components/chrome.tsx';
 
@@ -23,17 +23,34 @@ export default function Home() {
   );
 }
 
+// The Live Now card always carries footage. Sumo (the design pack's featured clip) leads whenever
+// it is live; otherwise another live session with a clip, then the next one coming up, then a
+// Sumo highlight. The badge always tells the truth: LIVE only while a session is actually on.
+const HERO_SPORT = 'sumo';
+
+interface HeroCard {
+  mode: 'live' | 'next' | 'highlight';
+  key: string; title: string; video?: string; bg: string; color: string; countryName: string; kind: string;
+  href: string; venueHref?: string; venueName?: string; time?: string; right?: string; pct?: string;
+}
+
 function Hero() {
   const { live, upNext, upcoming, clock, days, settings } = useHub();
-  // Lead with a live session that has a clip, so the card shows moving footage whenever it can.
-  const featured = live.find((s) => s.video) ?? live[0];
-  const others = live.filter((s) => s !== featured);
-  const preview = upcoming.find((s) => s.video);
   const navigate = useNavigate();
-  const noLiveNote = clock.phase === 'before'
-    ? `The event opens ${days[0].date}. First up: ${upNext[0]?.title ?? ''} at ${upNext[0]?.startT ?? ''}, ${upNext[0]?.venueName ?? ''}.`
-    : upNext[0] ? `Next: ${upNext[0].title} at ${upNext[0].startT}, ${upNext[0].venueName}`
-    : clock.phase === 'after' || clock.day === days.length ? 'The programme has finished. Thank you for coming.' : "Today's programme has finished. See you tomorrow.";
+  const isHero = (x: SessionView) => x.sp?.id === HERO_SPORT;
+  const lead = live.find(isHero) ?? live.find((x) => x.video) ?? live[0];
+  const others = live.filter((x) => x !== lead);
+  const next = lead ? undefined : upcoming.find(isHero) ?? upcoming.find((x) => x.video);
+  const heroSport = sportById(HERO_SPORT)!;
+  const card: HeroCard = lead
+    ? { mode: 'live', key: lead.id, title: lead.title, video: lead.video, bg: lead.bg, color: lead.color, countryName: lead.countryName, kind: lead.kind, href: lead.href, venueHref: lead.venueHref, venueName: lead.venueName, time: lead.time, right: lead.left + ' left', pct: lead.pct }
+    : next
+      ? { mode: 'next', key: next.id, title: next.title, video: next.video, bg: next.bg, color: next.color, countryName: next.countryName, kind: next.kind, href: next.href, venueHref: next.venueHref, venueName: next.venueName, time: `${next.dayShort} · ${next.time}`, right: next.st === 'soon' ? 'Starts ' + next.stLabel : days[next.day - 1].date }
+      : { mode: 'highlight', key: 'highlight', title: heroSport.name, video: heroSport.video, bg: artBg(heroSport.photo, countryById(heroSport.c).color), color: countryById(heroSport.c).color, countryName: countryById(heroSport.c).name, kind: 'Highlights', href: `/sports/${heroSport.id}` };
+  const note = clock.phase === 'before'
+    ? `The event opens ${days[0].date}`
+    : clock.phase === 'after' || (clock.day === days.length && !upNext.length) ? 'The programme has finished. Thank you for coming.'
+    : upNext.length ? 'No demonstration live right now' : "Today's programme has finished. See you tomorrow.";
   const dayLabel = clock.phase === 'before' ? 'Opens ' + days[0].date : days[clock.day - 1].label + ' · ' + days[clock.day - 1].date;
 
   return (
@@ -54,47 +71,41 @@ function Hero() {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'stretch' }}>
           <div style={{ flex: '1.7 1 560px', minWidth: 0 }}>
-            {featured ? (
-              <div className="feature" role="link" tabIndex={0} onClick={(e) => { if (!(e.target as HTMLElement).closest('a')) navigate(featured.href); }}
-                onKeyDown={(e) => e.key === 'Enter' && navigate(featured.href)}>
-                <div className="feature-art" style={{ background: featured.bg }} />
-                {featured.video && <Clip key={featured.id} src={featured.video} ambient label={`${featured.title}, live`} />}
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(10,8,6,.5) 0%,rgba(10,8,6,0) 30%,rgba(10,8,6,.15) 55%,rgba(10,8,6,.92) 100%)' }} />
-                <div style={{ position: 'absolute', left: 24, right: 24, top: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div className="feature" role="link" tabIndex={0} onClick={(e) => { if (!(e.target as HTMLElement).closest('a,button')) navigate(card.href); }}
+              onKeyDown={(e) => e.key === 'Enter' && navigate(card.href)}>
+              <div className="feature-art" style={{ background: card.bg }} />
+              {card.video && <Clip key={card.key} src={card.video} ambient label={`${card.title} video`} />}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(10,8,6,.5) 0%,rgba(10,8,6,0) 30%,rgba(10,8,6,.15) 55%,rgba(10,8,6,.92) 100%)' }} />
+              <div style={{ position: 'absolute', left: 24, right: 24, top: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                {card.mode === 'live' ? (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#E1302A', color: '#fff', borderRadius: 7, padding: '7px 12px 7px 10px', fontWeight: 700, fontSize: 13, letterSpacing: '.12em' }}>
                     <span className="dot-white" style={{ width: 8, height: 8 }} />LIVE
                   </span>
-                  <Link to={featured.venueHref} className="glass-pill" style={{ textDecoration: 'none' }}><PinIcon />{featured.venueName} · View on map</Link>
-                </div>
-                <div style={{ position: 'absolute', left: 28, right: 28, bottom: 24, color: '#fff' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600 }}>
-                    <span style={{ width: 12, height: 12, borderRadius: 3, background: featured.color }} />{featured.countryName}<span style={{ opacity: 0.6 }}>· {featured.kind}</span>
-                  </div>
-                  <div className="display" style={{ fontWeight: 900, fontSize: 'clamp(52px,6vw,88px)', lineHeight: 0.9, marginTop: 6 }}>{featured.title}</div>
-                  <div className="mono" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, fontSize: 14 }}>
-                    <span>{featured.time} · {featured.venueName}</span><span style={{ color: '#F3A53A' }}>{featured.left} left</span>
-                  </div>
-                  <div style={{ height: 5, borderRadius: 5, background: 'rgba(255,255,255,.2)', marginTop: 9, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: featured.pct, background: '#E1302A', borderRadius: 5, transition: 'width 1s linear' }} />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ position: 'relative', height: 460, borderRadius: 24, overflow: 'hidden', border: '1px dashed rgba(255,255,255,.25)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 24 }}>
-                {preview?.video && (
-                  <>
-                    <div className="feature-art" style={{ background: preview.bg, opacity: 0.35 }} />
-                    <div style={{ position: 'absolute', inset: 0, opacity: 0.6 }}><Clip key={preview.id} src={preview.video} ambient label={`${preview.title} preview`} /></div>
-                    <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at center, rgba(19,16,13,.45), rgba(19,16,13,.85))' }} />
-                  </>
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(19,16,13,.6)', backdropFilter: 'blur(8px)', color: '#fff', border: '1px solid rgba(255,255,255,.22)', borderRadius: 7, padding: '7px 12px 7px 10px', fontWeight: 700, fontSize: 13, letterSpacing: '.12em' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F3A53A' }} />{card.mode === 'next' ? 'UP NEXT' : 'HIGHLIGHTS'}
+                    <span style={{ fontWeight: 500, letterSpacing: 0, opacity: 0.75 }}>· {note}</span>
+                  </span>
                 )}
-                <div style={{ position: 'relative' }}>
-                  {preview && <div className="mono" style={{ fontSize: 11.5, letterSpacing: '.14em', color: '#F3A53A', textTransform: 'uppercase', marginBottom: 10 }}>Coming up · {preview.title} · {preview.startT}</div>}
-                  <div className="display" style={{ fontWeight: 800, fontSize: 34 }}>No demonstration live right now</div>
-                  <div style={{ fontSize: 15, color: 'rgba(255,255,255,.65)', marginTop: 8 }}>{noLiveNote}</div>
-                </div>
+                {card.venueHref && <Link to={card.venueHref} className="glass-pill" style={{ textDecoration: 'none' }}><PinIcon />{card.venueName} · View on map</Link>}
               </div>
-            )}
+              <div style={{ position: 'absolute', left: 28, right: 28, bottom: 24, color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: 3, background: card.color }} />{card.countryName}<span style={{ opacity: 0.6 }}>· {card.kind}</span>
+                </div>
+                <div className="display" style={{ fontWeight: 900, fontSize: 'clamp(52px,6vw,88px)', lineHeight: 0.9, marginTop: 6 }}>{card.title}</div>
+                {card.time && (
+                  <div className="mono" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, fontSize: 14 }}>
+                    <span>{card.time} · {card.venueName}</span><span style={{ color: '#F3A53A' }}>{card.right}</span>
+                  </div>
+                )}
+                {card.mode === 'live' && (
+                  <div style={{ height: 5, borderRadius: 5, background: 'rgba(255,255,255,.2)', marginTop: 9, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: card.pct, background: '#E1302A', borderRadius: 5, transition: 'width 1s linear' }} />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div style={{ flex: '1 1 340px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
