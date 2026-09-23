@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   COUNTRIES, EVENT_DAYS, SESSIONS, SPORTS, VENUES, countryById, hhmm, sportById, venueById,
   type Country, type Session, type Sport, type VenueId,
@@ -141,7 +141,7 @@ function buildHub(state: LiveState, now: number) {
     .sort((a, b) => b.at - a.at)
     .map((u) => ({ ...u, ago: ago(u.at), stamp: hm(u.at), dot: TAG_COLORS[u.type][0], tagInk: TAG_COLORS[u.type][1] }));
   const days = Array.from({ length: EVENT_DAYS }, (_, i) => ({ d: i + 1, label: 'Day ' + (i + 1), date: dayDateLabel(state.settings.startDate, i + 1) }));
-  return { state, settings: state.settings, clock, all, today, live, upNext: upcoming.slice(0, 4), sports, updates, days };
+  return { state, settings: state.settings, clock, all, today, live, upcoming, upNext: upcoming.slice(0, 4), sports, updates, days };
 }
 
 export type Hub = ReturnType<typeof buildHub>;
@@ -163,18 +163,6 @@ export function useStored<T>(key: string, init: T) {
   });
   const set = (next: T) => { setV(next); try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* private mode */ } };
   return [v, set] as const;
-}
-
-/** Play a muted looping clip once it is attached; used for the Live Now hero. */
-export function useAutoplay(src: string | undefined) {
-  const ref = useRef<HTMLVideoElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !src) return;
-    el.muted = true;
-    el.play().catch(() => {});
-  }, [src]);
-  return ref;
 }
 
 export { COUNTRIES, SPORTS, VENUES };

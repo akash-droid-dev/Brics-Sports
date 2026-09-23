@@ -3,6 +3,7 @@ import { Link, useParams, Navigate, useNavigate } from 'react-router-dom';
 import { COUNTRIES, SPORTS, VENUES, countryById, sportById } from '../../shared/data.ts';
 import { artBg, countryPhoto, useHub, type SessionView, type SportView } from '../lib/hub.tsx';
 import { BackButton } from '../components/chrome.tsx';
+import { Clip } from '../components/Clip.tsx';
 
 // ================= Schedule =================
 
@@ -264,7 +265,7 @@ export function SportDetail() {
     <div className="page">
       <section style={{ position: 'relative', height: 480, background: vm.bg, color: '#fff', overflow: 'hidden' }}>
         {playing && sp.video ? (
-          <video src={sp.video} controls playsInline loop autoPlay style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 1 }} />
+          <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: '#000' }}><Clip src={sp.video} fit="contain" label={`${sp.name} clip`} /></div>
         ) : (
           <>
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(10,8,6,.4),rgba(10,8,6,.05) 40%,rgba(10,8,6,.92))' }} />
