@@ -23,7 +23,7 @@ export type Env = Record<string, string | undefined>;
 export function seed(env: Env): Doc {
   const settings = {
     eventName: env.EVENT_NAME ?? 'BRICS SPORTS',
-    publicUrl: env.PUBLIC_URL ?? 'traditionalsports.live',
+    publicUrl: env.PUBLIC_URL ?? 'bricssports.netlify.app',
     timezone: env.EVENT_TIMEZONE ?? 'UTC',
     startDate: env.EVENT_START_DATE ?? '2026-10-15',
     place: 'Event Grounds',
