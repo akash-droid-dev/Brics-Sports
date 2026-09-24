@@ -1,6 +1,7 @@
-# Netlify: builds the site from app/ and serves the API from app/netlify/functions.
+# Netlify copy of the Live Hub. Deploy this folder on its own:
+#   CLI: run `npx netlify-cli deploy --build --prod` inside netlify-site/
+#   Git: set the project's Base directory to `netlify-site`
 [build]
-  base = "app"
   command = "npm run build"
   publish = "dist"
 
