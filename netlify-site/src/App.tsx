@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { HubProvider, useHub, useLiveState } from './lib/hub.tsx';
-import { AnnouncementBar, Footer, Header, LiveToast } from './components/chrome.tsx';
+import { AnnouncementBar, BackDock, Footer, Header, LiveToast } from './components/chrome.tsx';
 import Home from './pages/Home.tsx';
 import { Countries, CountryDetail, Schedule, SportDetail, Sports } from './pages/Browse.tsx';
 import { MapPage, Updates } from './pages/MapUpdates.tsx';
@@ -47,7 +47,8 @@ export default function App() {
       <ScrollToTop />
       <Header />
       <AnnouncementBar />
-      <main>
+      <main className={pathname === '/' ? undefined : 'has-back'}>
+        {pathname !== '/' && <BackDock />}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/schedule" element={<Schedule />} />

@@ -222,4 +222,5 @@ export const DEFAULT_VIDEOS = [
   { id: 'v-pkl-final-2', title: 'Kabaddi: Haryana Steelers vs Patna Pirates, PKL final', url: 'https://www.youtube.com/watch?v=y_iNp6x0EtY' },
 ];
 
-export const MASCOT = { name: '', image: '/brand/mascot-600.png', thumb: '/brand/mascot-160.png' };
+export const MASCOT = { name: 'Mitra', image: '/brand/mascot-600.png', thumb: '/brand/mascot-160.png' };
+export const MASCOT_ABOUT = 'This mascot unites the spirit of all 11 BRICS nations in one powerful athletic character. Its form blends distinctive traits inspired by each member nation’s national animal, symbolizing strength, agility, resilience, and heritage. Every feature contributes to a unique identity that celebrates cultural diversity within a single unified form. The mascot represents cooperation, shared ambition, and the collective sporting spirit of BRICS on the global stage.';

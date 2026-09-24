@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, Navigate, useLocation } from 'react-router-dom';
 import { VENUES, flagUrl } from '../../shared/data.ts';
 import { BRAND, flagArt, useHub, type SportView } from '../lib/hub.tsx';
-import { BackButton, PageHead, Stripe } from '../components/chrome.tsx';
+import { PageHead, Stripe } from '../components/chrome.tsx';
 import { Clip } from '../components/Clip.tsx';
 
 // ================= Schedule =================
@@ -51,7 +51,7 @@ export function Schedule() {
         The programme for the day, 9:00 AM onwards. Times update live; items changed by event control are marked <strong style={{ color: '#A65A0B' }}>CHANGED</strong>.
       </PageHead>
       <div className="wrap" style={{ paddingTop: 20, display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
-        <aside style={{ flex: '0 1 250px', minWidth: 220, position: 'sticky', top: 104, display: 'flex', flexDirection: 'column', gap: 6 }} className="filters">
+        <aside style={{ flex: '0 1 250px', minWidth: 220, position: 'sticky', top: 'calc(var(--hdr-h, 78px) + 64px)', display: 'flex', flexDirection: 'column', gap: 6 }} className="filters">
           <div className="label-muted">Show</div>
           {[['all', 'Full programme'], ['ceremony', 'Ceremony & presentations'], ['demo', 'Demonstration games']].map(([id, label]) => (
             <button key={id} onClick={() => setKind(id)} className={'side-btn' + (kind === id ? ' on' : '')} aria-pressed={kind === id}>{label}</button>
@@ -166,7 +166,7 @@ export function CountryDetail() {
       <section style={{ position: 'relative', height: 420, background: flagArt(c), color: '#fff' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(12,24,48,.3),rgba(12,24,48,.05) 40%,rgba(12,24,48,.85))' }} />
         <div className="wrap" style={{ position: 'relative', height: '100%', paddingTop: 24, paddingBottom: 36, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div><BackButton /></div>
+          <div />
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 22, flexWrap: 'wrap' }}>
             <img className="flag" src={flagUrl(c)} alt={`Flag of ${c.name}`} width={120} height={90} style={{ border: '4px solid #fff', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.3)' }} />
             <div>
@@ -291,9 +291,6 @@ export function SportDetail() {
             </div>
           </>
         )}
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 24, zIndex: 2 }}>
-          <div className="wrap"><BackButton /></div>
-        </div>
       </section>
       <div className="wrap" style={{ paddingTop: 40, display: 'flex', flexWrap: 'wrap', gap: 36, alignItems: 'flex-start' }}>
         <div style={{ flex: '1.4 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 30 }}>

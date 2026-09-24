@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { embedUrl, parseYouTube } from '../../shared/youtube.ts';
-import { FACILITIES, MASCOT, VENUES, flagUrl } from '../../shared/data.ts';
+import { VideoTheater } from '../components/VideoPlayer.tsx';
+import { FACILITIES, MASCOT, MASCOT_ABOUT, VENUES, flagUrl } from '../../shared/data.ts';
 import { BRAND, ampmRange, flagArt, useHub, type SessionView } from '../lib/hub.tsx';
 import { Clip } from '../components/Clip.tsx';
 import { PinIcon, Stripe, useUnseenUpdates } from '../components/chrome.tsx';
@@ -38,7 +39,7 @@ function Banner() {
         </picture>
       </div>
       <div className="banner-mascot">
-        <div className="bubble">Namaste! {mascotLine()}</div>
+        <div className="bubble">Namaste! I am {MASCOT.name}!</div>
         <img src={MASCOT.image} alt="" />
       </div>
     </section>
@@ -62,10 +63,11 @@ function LiveNow() {
   // The video chosen in Event control plays behind the card; "Watch" opens it with sound and controls.
   const { video } = useHub();
   const yt = video ? parseYouTube(video.url) : null;
-  const [theater, setTheater] = useState(false);
+  const [watching, setWatching] = useState(false);
 
   return (
     <section className="wrap" style={{ paddingTop: 28 }}>
+      {watching && yt && <VideoTheater yt={yt} title={video!.title} onClose={() => setWatching(false)} />}
       <div className="section-head">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -81,17 +83,14 @@ function LiveNow() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'stretch' }}>
         <div style={{ flex: '1.7 1 560px', minWidth: 0 }}>
           {s && card && (
-            <div className={'feature' + (theater ? ' theater' : '')} role={theater ? undefined : 'link'} tabIndex={theater ? undefined : 0}
-              onClick={(e) => { if (!theater && !(e.target as HTMLElement).closest('a,button')) navigate(s.href); }}
-              onKeyDown={(e) => !theater && e.key === 'Enter' && navigate(s.href)}>
+            <div className="feature" role="link" tabIndex={0}
+              onClick={(e) => { if (!(e.target as HTMLElement).closest('a,button')) navigate(s.href); }}
+              onKeyDown={(e) => e.key === 'Enter' && navigate(s.href)}>
               <div className="feature-art" style={{ background: s.bg }} />
               {yt ? (
-                <iframe key={`${video!.id}-${theater}`} className={theater ? 'yt-full' : 'yt-bg'} src={embedUrl(yt, { background: !theater })} title={video!.title}
-                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" tabIndex={theater ? 0 : -1} />
+                <iframe key={video!.id} className={'yt-bg' + (yt.kind === 'video' && yt.vertical ? ' vertical' : '')} src={embedUrl(yt, { background: true })} title={video!.title}
+                  allow="autoplay; encrypted-media" referrerPolicy="strict-origin-when-cross-origin" tabIndex={-1} aria-hidden="true" />
               ) : s.video && <Clip key={s.id} src={s.video} ambient label={`${s.title} video`} />}
-              {theater && (
-                <button className="glass-pill yt-close" onClick={() => setTheater(false)} aria-label="Close video">✕ Close video</button>
-              )}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(12,24,48,.45) 0%,rgba(12,24,48,0) 30%,rgba(12,24,48,.2) 55%,rgba(12,24,48,.92) 100%)' }} />
               <div style={{ position: 'absolute', left: 24, right: 24, top: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 {card.mode === 'live' ? (
@@ -106,8 +105,8 @@ function LiveNow() {
                 )}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {yt && (
-                    <button className="glass-pill" onClick={() => setTheater(true)} title={video!.title} style={{ background: 'rgba(225,48,42,.9)', borderColor: 'transparent', maxWidth: 320 }}>
-                      <span aria-hidden="true">▶</span><span className="ellipsis">Watch · {video!.title}</span>
+                    <button className="glass-pill" onClick={() => setWatching(true)} title={`Watch on the big screen: ${video!.title}`} style={{ background: 'rgba(225,48,42,.9)', borderColor: 'transparent', maxWidth: 320 }}>
+                      <span aria-hidden="true">▶</span><span className="ellipsis">Watch big screen · {video!.title}</span>
                     </button>
                   )}
                   <Link to={s.venueHref} className="glass-pill"><PinIcon />{s.venueName} · View on map</Link>
@@ -278,7 +277,7 @@ function MascotAbout() {
           <h2 className="h2" style={{ fontSize: 'clamp(34px,4.4vw,54px)', marginTop: 8 }}>{mascotLine()}</h2>
           <Stripe />
           <p className="lede" style={{ marginTop: 18 }}>
-            Our mascot welcomes every delegation to Ahmedabad, dressed in colourful traditional attire and ready to cheer on sporting traditions from across the BRICS countries.
+            {MASCOT_ABOUT}
           </p>
           <p className="lede" style={{ marginTop: 6 }}>
             BRICS Traditional &amp; Indigenous Sports 2026 is a non-competitive cultural showcase under India's BRICS Chairship, celebrating sporting heritage, cultural diversity and the connections between communities.

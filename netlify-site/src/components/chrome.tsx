@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink, Link, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { MASCOT, ampm } from '../../shared/data.ts';
 import { BRAND, useHub, useStored } from '../lib/hub.tsx';
@@ -12,11 +12,16 @@ export function Stripe({ width = 120, style }: { width?: number; style?: React.C
   return <div className="stripe" style={{ width, ...style }} aria-hidden="true">{BRICS_COLORS.map((c) => <span key={c} style={{ background: c }} />)}</div>;
 }
 
-/** Official event logo (ring of sports + BRICS wordmark). `mark` shows only the ring. */
+/** Official event logo (ring of sports + BRICS wordmark); the ring turns slowly. `mark` shows only the ring. */
 export function Logo({ height = 50, mark = false }: { height?: number; mark?: boolean }) {
   return mark
     ? <img src="/brand/logo-mark.png" alt="" height={height} width={height} style={{ height, width: height, display: 'block' }} />
-    : <img src="/brand/logo-120.png" alt="BRICS Traditional & Indigenous Sports 2026, Amdavad, India" className="brand-logo" style={{ height }} />;
+    : (
+      <span className="logo brand-logo" style={{ height }} role="img" aria-label="BRICS Traditional & Indigenous Sports 2026, Amdavad, India">
+        <img className="logo-ring" src="/brand/logo-ring.png" alt="" />
+        <img className="logo-word" src="/brand/logo-word.png" alt="" />
+      </span>
+    );
 }
 
 /** A scannable QR for the public URL, drawn with a red centre mark. */
@@ -57,8 +62,16 @@ export function Header() {
     : clock.phase === 'after' ? `Event ended · ${days[days.length - 1].date}`
     : one ? `Today · ${days[0].date}` : `${days[clock.day - 1].label} of ${days.length} · ${days[clock.day - 1].date}`;
   const [hm, mer] = ampm(Math.floor(clock.minutes)).split(' ');
+  // Publish the header's height so the sticky Back button can sit just below it.
+  const hdr = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = hdr.current; if (!el) return;
+    const ro = new ResizeObserver(() => document.documentElement.style.setProperty('--hdr-h', el.offsetHeight + 'px'));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   return (
-    <header className="hdr">
+    <header className="hdr" ref={hdr}>
       <div className="wrap hdr-in">
         <Link to="/" className="brand" aria-label="Home">
           <Logo />
@@ -169,12 +182,22 @@ export function PinIcon() {
   return <svg width="12" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M6 13s5-4.6 5-8A5 5 0 0 0 1 5c0 3.4 5 8 5 8z" fill="#F28C28" /><circle cx="6" cy="5" r="1.8" fill="#fff" /></svg>;
 }
 
+/** Where "Back" goes when the visitor landed directly on this page: one level up. */
+const parentOf = (path: string) => { const parts = path.split('/').filter(Boolean); return parts.length > 1 ? '/' + parts.slice(0, -1).join('/') : '/'; };
+
 export function BackButton() {
+  const navigate = useNavigate();
+  const { key, pathname } = useLocation();
   return (
-    <button className="back" onClick={() => (history.length > 1 ? history.back() : (location.href = '/'))}>
+    <button className="back" onClick={() => (key !== 'default' ? navigate(-1) : navigate(parentOf(pathname)))}>
       <svg width="9" height="14" viewBox="0 0 10 16" aria-hidden="true"><path d="M8 2L2 8l6 6" stroke="#fff" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>Back
     </button>
   );
+}
+
+/** Sticky Back button shown on every page except the home page. */
+export function BackDock() {
+  return <div className="back-dock"><div className="wrap"><BackButton /></div></div>;
 }
 
 /** Page header used by every inner page: eyebrow, title, BRICS stripe and an optional intro. */

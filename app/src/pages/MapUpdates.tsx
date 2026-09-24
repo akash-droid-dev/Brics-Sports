@@ -193,7 +193,7 @@ export function Updates() {
         Schedule changes, notices and highlights, published by event control during the event.
       </PageHead>
       <div className="wrap" style={{ paddingTop: 20, display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
-        <aside style={{ flex: '0 1 280px', minWidth: 240, position: 'sticky', top: 104, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <aside style={{ flex: '0 1 280px', minWidth: 240, position: 'sticky', top: 'calc(var(--hdr-h, 78px) + 64px)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div className="label-muted">Show</div>
           {FILTERS.map(([label]) => <button key={label} onClick={() => setFilter(label)} className={'side-btn' + (filter === label ? ' on' : '')} aria-pressed={filter === label}>{label}</button>)}
           {a.on && (
