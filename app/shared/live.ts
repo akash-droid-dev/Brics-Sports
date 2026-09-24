@@ -1,5 +1,5 @@
 // Live state shared by the server (source of truth) and the browser (read-only mirror).
-import type { UpdateType, VenueId } from './data.ts';
+import type { Country, Sport, UpdateType, VenueId } from './data.ts';
 
 export interface Announcement { on: boolean; title: string; body: string }
 
@@ -13,17 +13,29 @@ export interface Settings {
   startDate: string;
   place: string;
   announcement: Announcement;
+  /** Uploaded QR image (/api/media/…); null shows the QR generated from publicUrl. */
+  qrImage?: string | null;
 }
 
 export interface Override { start?: number; end?: number; venue?: VenueId; changed?: boolean }
 
 export interface LiveUpdate { id: string; type: UpdateType; at: number; title: string; body: string }
 
+/** A video in the admin's library, shown in the Live Now card when chosen. */
+export interface LiveVideo { id: string; title: string; url: string }
+
+/** Countries and sports as edited in the admin (seeded from shared/data.ts). */
+export interface Content { countries: Country[]; sports: Sport[] }
+
 export interface LiveState {
   version: number;
   settings: Settings;
   overrides: Record<string, Override>;
   updates: LiveUpdate[];
+  content: Content;
+  videos: LiveVideo[];
+  /** Id of the video playing in the Live Now card, or null for none. */
+  liveVideo: string | null;
 }
 
 export interface LogEntry { at: number; text: string }

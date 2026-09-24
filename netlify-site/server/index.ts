@@ -1,10 +1,10 @@
 // Node host: serves the API (server/core.ts), live push over Server-Sent Events, and the built site.
 import express from 'express';
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { SESSIONS, VENUES } from '../shared/data.ts';
 import type { LiveState } from '../shared/live.ts';
-import { createApi, type Doc, type Store } from './core.ts';
+import { createApi, type Doc, type MediaStore, type Store } from './core.ts';
 
 const env = process.env;
 if (env.NODE_ENV === 'production' && !env.ADMIN_PASSWORD) {
@@ -26,8 +26,19 @@ const fileStore: Store = {
   },
 };
 
+// Uploaded images live next to the state file.
+const MEDIA_DIR = join(dirname(FILE), 'media');
+const fileMedia: MediaStore = {
+  async put(id, data, type) { mkdirSync(MEDIA_DIR, { recursive: true }); writeFileSync(join(MEDIA_DIR, id), data); writeFileSync(join(MEDIA_DIR, id + '.type'), type); },
+  async get(id) {
+    const f = join(MEDIA_DIR, id);
+    return existsSync(f) ? { data: new Uint8Array(readFileSync(f)), type: readFileSync(f + '.type', 'utf8') } : null;
+  },
+  async remove(id) { for (const f of [id, id + '.type']) rmSync(join(MEDIA_DIR, f), { force: true }); },
+};
+
 const listeners = new Set<(s: LiveState) => void>();
-const api = createApi({ store: fileStore, env, onChange: (s) => listeners.forEach((l) => l(s)) });
+const api = createApi({ store: fileStore, media: fileMedia, env, onChange: (s) => listeners.forEach((l) => l(s)) });
 
 const app = express();
 app.set('trust proxy', 1);
@@ -44,7 +55,7 @@ app.get('/api/stream', async (req, res) => {
 });
 
 // Everything else under /api goes through the shared handler.
-app.use('/api', express.raw({ type: '*/*', limit: '32kb' }), async (req, res) => {
+app.use('/api', express.raw({ type: '*/*', limit: '8mb' }), async (req, res) => {
   const headers = new Headers();
   for (const [k, v] of Object.entries(req.headers)) if (typeof v === 'string') headers.set(k, v);
   const hasBody = !['GET', 'HEAD'].includes(req.method) && Buffer.isBuffer(req.body) && req.body.length > 0;

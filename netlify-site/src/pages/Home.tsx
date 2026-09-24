@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { COUNTRIES, FACILITIES, MASCOT, SPORTS, VENUES, flagUrl } from '../../shared/data.ts';
+import { embedUrl, parseYouTube } from '../../shared/youtube.ts';
+import { FACILITIES, MASCOT, VENUES, flagUrl } from '../../shared/data.ts';
 import { BRAND, ampmRange, flagArt, useHub, type SessionView } from '../lib/hub.tsx';
 import { Clip } from '../components/Clip.tsx';
 import { PinIcon, Stripe, useUnseenUpdates } from '../components/chrome.tsx';
@@ -46,6 +48,7 @@ function Banner() {
 interface HeroCard { mode: 'live' | 'next' | 'done'; s: SessionView }
 
 function LiveNow() {
+  const { countries: COUNTRIES, sportsList: SPORTS, countryById, sportById } = useHub();
   const { live, upNext, upcoming, today, clock, days, settings } = useHub();
   const navigate = useNavigate();
   // Lead with a country demonstration when one is live, else whatever is on, else what comes next.
@@ -56,6 +59,10 @@ function LiveNow() {
   const note = clock.phase === 'before' ? `The event opens ${days[0].date}` : clock.phase === 'after' || !next ? 'The programme has finished. Thank you for joining us.' : 'Coming up next';
   const s = card?.s;
   const long = (s?.title.length ?? 0) > 28;
+  // The video chosen in Event control plays behind the card; "Watch" opens it with sound and controls.
+  const { video } = useHub();
+  const yt = video ? parseYouTube(video.url) : null;
+  const [theater, setTheater] = useState(false);
 
   return (
     <section className="wrap" style={{ paddingTop: 28 }}>
@@ -74,10 +81,17 @@ function LiveNow() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'stretch' }}>
         <div style={{ flex: '1.7 1 560px', minWidth: 0 }}>
           {s && card && (
-            <div className="feature" role="link" tabIndex={0} onClick={(e) => { if (!(e.target as HTMLElement).closest('a,button')) navigate(s.href); }}
-              onKeyDown={(e) => e.key === 'Enter' && navigate(s.href)}>
+            <div className={'feature' + (theater ? ' theater' : '')} role={theater ? undefined : 'link'} tabIndex={theater ? undefined : 0}
+              onClick={(e) => { if (!theater && !(e.target as HTMLElement).closest('a,button')) navigate(s.href); }}
+              onKeyDown={(e) => !theater && e.key === 'Enter' && navigate(s.href)}>
               <div className="feature-art" style={{ background: s.bg }} />
-              {s.video && <Clip key={s.id} src={s.video} ambient label={`${s.title} video`} />}
+              {yt ? (
+                <iframe key={`${video!.id}-${theater}`} className={theater ? 'yt-full' : 'yt-bg'} src={embedUrl(yt, { background: !theater })} title={video!.title}
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" tabIndex={theater ? 0 : -1} />
+              ) : s.video && <Clip key={s.id} src={s.video} ambient label={`${s.title} video`} />}
+              {theater && (
+                <button className="glass-pill yt-close" onClick={() => setTheater(false)} aria-label="Close video">✕ Close video</button>
+              )}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(12,24,48,.45) 0%,rgba(12,24,48,0) 30%,rgba(12,24,48,.2) 55%,rgba(12,24,48,.92) 100%)' }} />
               <div style={{ position: 'absolute', left: 24, right: 24, top: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 {card.mode === 'live' ? (
@@ -90,7 +104,14 @@ function LiveNow() {
                     <span style={{ fontWeight: 500, letterSpacing: 0, opacity: 0.8 }}>· {note}</span>
                   </span>
                 )}
-                <Link to={s.venueHref} className="glass-pill"><PinIcon />{s.venueName} · View on map</Link>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {yt && (
+                    <button className="glass-pill" onClick={() => setTheater(true)} title={video!.title} style={{ background: 'rgba(225,48,42,.9)', borderColor: 'transparent', maxWidth: 320 }}>
+                      <span aria-hidden="true">▶</span><span className="ellipsis">Watch · {video!.title}</span>
+                    </button>
+                  )}
+                  <Link to={s.venueHref} className="glass-pill"><PinIcon />{s.venueName} · View on map</Link>
+                </div>
               </div>
               <div style={{ position: 'absolute', left: 28, right: 28, bottom: 24, color: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600 }}>
@@ -159,6 +180,7 @@ function LiveNow() {
 }
 
 function QuickAccess() {
+  const { countries: COUNTRIES, sportsList: SPORTS, countryById, sportById } = useHub();
   const { today } = useHub();
   const { unseen } = useUnseenUpdates();
   const icon = (bg: string, path: React.ReactNode) => (
@@ -272,6 +294,7 @@ function MascotAbout() {
 }
 
 function ExploreCountries() {
+  const { countries: COUNTRIES, sportsList: SPORTS, countryById, sportById } = useHub();
   const { all } = useHub();
   return (
     <section className="wrap section">
@@ -301,6 +324,7 @@ function ExploreCountries() {
 }
 
 function DiscoverSports() {
+  const { countries: COUNTRIES, sportsList: SPORTS, countryById, sportById } = useHub();
   const { sports } = useHub();
   const feat = FEATURED.map((id) => sports.find((s) => s.id === id)!).filter(Boolean);
   return (
@@ -313,7 +337,7 @@ function DiscoverSports() {
         {feat.map((s, i) => (
           <Link key={s.id} to={`/sports/${s.id}`} className="plain lift" style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', background: s.bg, gridRow: i === 0 ? 'span 2' : 'span 1', gridColumn: i === 0 ? 'span 2' : 'span 1', boxShadow: 'var(--shadow)' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(12,24,48,.85))' }} />
-            <div className="display" aria-hidden="true" style={{ position: 'absolute', right: 16, top: 6, fontWeight: 900, fontSize: i === 0 ? 150 : 76, lineHeight: 1, color: 'rgba(255,255,255,.16)' }}>{s.initials}</div>
+            {s.noPhoto && <div className="display" aria-hidden="true" style={{ position: 'absolute', right: 16, top: 6, fontWeight: 900, fontSize: i === 0 ? 150 : 76, lineHeight: 1, color: 'rgba(255,255,255,.16)' }}>{s.initials}</div>}
             {s.isLive && <span className="live-tag" style={{ top: 14, left: 14 }}>LIVE</span>}
             <div style={{ position: 'absolute', left: 18, right: 18, bottom: 16, color: '#fff' }}>
               <div style={{ fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 7, opacity: 0.95 }}><img className="flag" src={s.flag} alt="" width={18} height={13} />{s.countryName} · {s.type}</div>

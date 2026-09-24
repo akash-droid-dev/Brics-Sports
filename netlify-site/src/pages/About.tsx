@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { COUNTRIES, MASCOT, flagUrl } from '../../shared/data.ts';
-import { BRAND } from '../lib/hub.tsx';
+import { MASCOT, flagUrl } from '../../shared/data.ts';
+import { BRAND, useHub } from '../lib/hub.tsx';
 import { PageHead, Stripe } from '../components/chrome.tsx';
 
 const PIB = 'https://www.pib.gov.in/PressReleasePage.aspx?PRID=2302494&lang=2&reg=48';
@@ -18,6 +18,7 @@ function Block({ children, accent = BRAND.orange }: { children: React.ReactNode;
 }
 
 export default function About() {
+  const { countries: COUNTRIES, sportsList: SPORTS, countryById, sportById } = useHub();
   return (
     <div className="page">
       <PageHead small eyebrow="About us" title="About BRICS Traditional & Indigenous Sports 2026"
