@@ -1,10 +1,11 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { HubProvider, useHub, useLiveState } from './lib/hub.tsx';
-import { AnnouncementBar, Emblem, Footer, Header, LiveToast } from './components/chrome.tsx';
+import { AnnouncementBar, Footer, Header, LiveToast } from './components/chrome.tsx';
 import Home from './pages/Home.tsx';
 import { Countries, CountryDetail, Schedule, SportDetail, Sports } from './pages/Browse.tsx';
 import { MapPage, Updates } from './pages/MapUpdates.tsx';
+import About from './pages/About.tsx';
 
 const Admin = lazy(() => import('./admin/Admin.tsx'));
 
@@ -12,7 +13,7 @@ function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
     // The map swaps its selection in place; everything else starts at the top.
-    if (!pathname.startsWith('/map/')) window.scrollTo({ top: 0 });
+    if (!pathname.startsWith('/map/') && !location.hash) window.scrollTo({ top: 0 });
   }, [pathname]);
   return null;
 }
@@ -25,9 +26,9 @@ function Title() {
 
 function Loading({ error }: { error?: boolean }) {
   return (
-    <div style={{ minHeight: '100vh', background: '#13100D', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
-      <div style={{ animation: 'ftsSpin 4s linear infinite' }}><Emblem size={72} /></div>
-      <div className="mono" style={{ fontSize: 12, letterSpacing: '.14em', color: '#F3A53A', textTransform: 'uppercase' }}>{error ? 'Reconnecting to the Live Hub…' : 'Loading the Live Hub…'}</div>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+      <img src="/brand/logo-mark.png" alt="" width={96} height={96} style={{ animation: 'ftsSpin 6s linear infinite' }} />
+      <div className="mono" style={{ fontSize: 12, letterSpacing: '.14em', color: '#F28C28', textTransform: 'uppercase' }}>{error ? 'Reconnecting to the Live Hub…' : 'Loading the Live Hub…'}</div>
     </div>
   );
 }
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/map" element={<MapPage />} />
           <Route path="/map/:loc" element={<MapPage />} />
           <Route path="/updates" element={<Updates />} />
+          <Route path="/about" element={<About />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>

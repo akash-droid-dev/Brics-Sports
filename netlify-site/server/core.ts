@@ -1,10 +1,13 @@
 // The Live Hub API as a plain Web `Request → Response` handler, so the same code runs on the
 // Node server (server/index.ts) and as a Netlify Function (netlify/functions/api.ts).
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { DEFAULT_ANNOUNCEMENT, SAMPLE_UPDATES, SESSIONS, countryById, hhmm, sportById, venueById, type UpdateType, type VenueId } from '../shared/data.ts';
+import { DEFAULT_ANNOUNCEMENT, SAMPLE_UPDATES, SESSIONS, ampm, sportById, venueById, type UpdateType, type VenueId } from '../shared/data.ts';
 import { UPDATE_TYPES, addDays, isValidTimeZone, zonedToEpoch, type LiveState, type LogEntry } from '../shared/live.ts';
 
-export interface Doc { state: LiveState; log: LogEntry[] }
+export interface Doc { state: LiveState; log: LogEntry[]; seed?: number }
+
+/** Bump when the programme or countries change shape, so stored overrides for old sessions are dropped. */
+export const SEED_VERSION = 2;
 
 /**
  * Where the live state lives. `load` returns a version tag: a string (write only if unchanged),
@@ -22,18 +25,18 @@ export type Env = Record<string, string | undefined>;
 
 export function seed(env: Env): Doc {
   const settings = {
-    eventName: env.EVENT_NAME ?? 'BRICS SPORTS',
+    eventName: env.EVENT_NAME ?? 'BRICS Traditional & Indigenous Sports 2026',
     publicUrl: env.PUBLIC_URL ?? 'bricssports.netlify.app',
-    timezone: env.EVENT_TIMEZONE ?? 'UTC',
-    startDate: env.EVENT_START_DATE ?? '2026-10-15',
-    place: 'Event Grounds',
+    timezone: env.EVENT_TIMEZONE ?? 'Asia/Kolkata',
+    startDate: env.EVENT_START_DATE ?? '2026-10-12',
+    place: 'Veer Savarkar Sports Complex, Ahmedabad',
     announcement: { on: true, ...DEFAULT_ANNOUNCEMENT },
   };
   const updates = SAMPLE_UPDATES.map((u) => ({
     id: u.id, type: u.type, title: u.title, body: u.body,
     at: zonedToEpoch(addDays(settings.startDate, u.day - 1), u.t, settings.timezone),
   })).sort((a, b) => b.at - a.at);
-  return { state: { version: 1, settings, overrides: {}, updates }, log: [] };
+  return { state: { version: 1, settings, overrides: {}, updates }, log: [], seed: SEED_VERSION };
 }
 
 interface Options {
@@ -74,7 +77,11 @@ export function createApi({ store, env, onChange, stateHeaders = {} }: Options) 
 
   async function current(): Promise<{ doc: Doc; tag?: Tag }> {
     const { doc, tag } = await store.load();
-    return { doc: doc ?? seed(env), tag };
+    if (doc && doc.seed === SEED_VERSION) return { doc, tag };
+    // Nothing stored yet, or content from an older programme: start fresh, keeping the version rising.
+    const fresh = seed(env);
+    if (doc) fresh.state.version = doc.state.version + 1;
+    return { doc: fresh, tag };
   }
 
   /** Read–modify–write with a retry if another admin saved in between. */
@@ -94,7 +101,7 @@ export function createApi({ store, env, onChange, stateHeaders = {} }: Options) 
 
   const sessionName = (id: string) => {
     const s = SESSIONS.find((x) => x.id === id)!;
-    return s.sport ? sportById(s.sport)!.name : countryById(s.country).name + ' showcase';
+    return s.sport ? sportById(s.sport)!.name : s.title;
   };
 
   return async function handle(req: Request, ip = 'unknown'): Promise<Response> {
@@ -166,11 +173,11 @@ export function createApi({ store, env, onChange, stateHeaders = {} }: Options) 
         if (!notify) return;
         const vFrom = venueById(venue)!, vTo = venueById(next.venue)!;
         const title = next.venue !== venue
-          ? `${name} moved from ${vFrom.short} to ${vTo.name}` + (delta ? `, now ${hhmm(next.start)}` : '')
-          : `${name} at ${vFrom.short} now starts ${hhmm(next.start)}`;
+          ? `${name} moved from ${vFrom.short} to ${vTo.name}` + (delta ? `, now ${ampm(next.start)}` : '')
+          : `${name} at ${vFrom.short} now starts ${ampm(next.start)}`;
         const text = delta
           ? `${delta > 0 ? 'Delayed' : 'Brought forward'} by ${Math.abs(delta)} minutes. All other sessions run on time.`
-          : `Same time, ${hhmm(next.start)}. Follow signs to the ${vTo.name}.`;
+          : `Same time, ${ampm(next.start)}. Follow signs to the ${vTo.name}.`;
         s.updates.unshift({ id: randomUUID(), type: 'Schedule change', at: Date.now(), title, body: text });
       });
     }

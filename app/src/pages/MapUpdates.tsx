@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FACILITIES, VENUES, facilityById, type VenueId } from '../../shared/data.ts';
 import { shade, useHub, useStored } from '../lib/hub.tsx';
-import { KilimPattern, useUnseenUpdates } from '../components/chrome.tsx';
+import { PageHead, useUnseenUpdates } from '../components/chrome.tsx';
 
 // Footprints on the 300×300 site plan: x, y, w, h, block height.
 const G: Record<VenueId, [number, number, number, number, number]> = {
@@ -24,32 +24,27 @@ export function MapPage() {
   const venue = VENUES.find((v) => v.id === sel);
 
   const labels = [
-    ...VENUES.map((v) => { const [x, y, w, h, hz] = G[v.id]; const on = sel === v.id; return { id: v.id, x: x + w / 2, y: y + h / 2, z: (on ? hz + 10 : hz) + 2, label: v.short, live: isLiveAt(v.id), bg: on ? '#fff' : '#16120E', ink: on ? '#16120E' : '#fff' }; }),
+    ...VENUES.map((v) => { const [x, y, w, h, hz] = G[v.id]; const on = sel === v.id; return { id: v.id, x: x + w / 2, y: y + h / 2, z: (on ? hz + 10 : hz) + 2, label: v.short, live: isLiveAt(v.id), bg: on ? '#fff' : 'var(--navy)', ink: on ? 'var(--navy)' : '#fff' }; }),
     ...FACILITIES.filter((f) => PINS[f.id] && (sel === f.id || (sel === 'other' && ['water', 'prayer'].includes(f.id))))
-      .map((f) => ({ id: f.id, x: PINS[f.id][0], y: PINS[f.id][1], z: 4, label: f.name, live: false, bg: '#F3A53A', ink: '#16120E' })),
+      .map((f) => ({ id: f.id, x: PINS[f.id][0], y: PINS[f.id][1], z: 4, label: f.name, live: false, bg: '#F3A53A', ink: 'var(--navy)' })),
   ];
 
   return (
     <div className="page">
-      <section className="band">
-        <div className="wrap" style={{ paddingTop: 34 }}>
-          <div className="eyebrow">{settings.place}</div>
-          <h1 className="h1">Event map</h1>
-          <div style={{ fontSize: 15, color: 'rgba(255,255,255,.65)', marginTop: 8 }}>Select a location to see what is on there.</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '22px 0' }}>
-            {LOCS.map(([id, label]) => (
-              <button key={id} onClick={() => pick(id)} aria-pressed={sel === id} className={'chip-dark' + (sel === id ? ' on' : '')} style={{ height: 38, borderRadius: 19, padding: '0 15px' }}>
-                {isLiveAt(id) && <span className="dot" />}{label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-      <div className="wrap" style={{ paddingTop: 28, paddingBottom: 64, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
+      <PageHead eyebrow={settings.place} title="Venue map">
+        Select an area to see what is on there. The programme takes place in the Main Arena; the other areas show an indicative layout until the final venue plan is confirmed.
+      </PageHead>
+      <div className="wrap" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 8 }}>
+        {LOCS.map(([id, label]) => (
+          <button key={id} onClick={() => pick(id)} aria-pressed={sel === id} className={'chip' + (sel === id ? ' on' : '')}>
+            {isLiveAt(id) && <span className="dot" />}{label}
+          </button>
+        ))}
+      </div>
+      <div className="wrap" style={{ paddingTop: 24, display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
         <div className="map-stage">
-          <KilimPattern id="kilimM" opacity={0.06} inner={false} />
-          <div style={{ position: 'absolute', width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle,rgba(243,165,58,.22),rgba(243,165,58,0) 70%)' }} />
-          <div className="mono" style={{ position: 'absolute', left: 20, top: 18, fontSize: 11, letterSpacing: '.12em', color: 'rgba(255,255,255,.5)', textTransform: 'uppercase' }}>Event map · tap a zone</div>
+          <div style={{ position: 'absolute', width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle,rgba(249,197,18,.18),rgba(249,197,18,0) 70%)' }} />
+          <div className="mono" style={{ position: 'absolute', left: 20, top: 18, fontSize: 11, letterSpacing: '.12em', color: 'rgba(255,255,255,.5)', textTransform: 'uppercase' }}>Indicative layout · tap an area</div>
           <div style={{ position: 'absolute', right: 20, bottom: 18, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,.6)' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#E1302A' }} />Live now</div>
           <div className="map-board">
             <div style={{ position: 'absolute', inset: -10, borderRadius: 22, background: '#2A241C', boxShadow: '0 0 0 1px rgba(255,255,255,.08)' }} />
@@ -98,29 +93,27 @@ function VenuePanel({ id, pick }: { id: VenueId; pick: (id: string) => void }) {
   const v = VENUES.find((x) => x.id === id)!;
   const here = today.filter((s) => s.venue === id).sort((a, b) => a.start - b.start);
   const lv = here.filter((s) => s.isLive);
-  const types = new Set(here.map((s) => s.sp?.type).filter(Boolean));
-  const related = today.filter((s) => s.venue !== id && (s.st === 'soon' || s.st === 'later') && s.sp && types.has(s.sp.type)).slice(0, 6);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div>
-        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.1em', color: '#6A6056', textTransform: 'uppercase' }}>{v.kind} · {v.cap}</div>
-        <h2 className="display" style={{ fontWeight: 900, fontSize: 48, lineHeight: 0.95, margin: '4px 0 0' }}>{v.name}</h2>
-        <div style={{ fontSize: 15, color: '#4E463D', marginTop: 8, lineHeight: 1.5 }}>{v.desc}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.1em', color: 'var(--muted)', textTransform: 'uppercase' }}>{v.kind} · {v.cap}</div>
+        <h2 className="display" style={{ fontWeight: 900, fontSize: 48, lineHeight: 0.95, margin: '4px 0 0', color: 'var(--navy)' }}>{v.name}</h2>
+        <div style={{ fontSize: 15, color: 'var(--body)', marginTop: 8, lineHeight: 1.5 }}>{v.desc}</div>
       </div>
       <div>
         <div className="label" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}><span className="dot" style={{ width: 8, height: 8 }} />Live now</div>
         {lv.map((s) => (
           <Link key={s.id} to={s.href} className="plain" style={{ display: 'block', position: 'relative', height: 170, borderRadius: 18, overflow: 'hidden', background: s.bg, marginBottom: 8 }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(10,8,6,.92),rgba(10,8,6,.2))' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(12,24,48,.92),rgba(12,24,48,.2))' }} />
             <div style={{ position: 'absolute', left: 20, top: 18, right: 20, color: '#fff' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E1302A', borderRadius: 6, padding: '4px 9px', fontSize: 11, fontWeight: 700, letterSpacing: '.1em' }}><span className="dot-white" style={{ width: 6, height: 6 }} />LIVE</span>
-              <div className="display" style={{ fontWeight: 900, fontSize: 40, lineHeight: 1, marginTop: 10 }}>{s.title}</div>
+              <div className="display" style={{ fontWeight: 900, fontSize: s.title.length > 30 ? 28 : 38, lineHeight: 1, marginTop: 10 }}>{s.title}</div>
               <div style={{ fontSize: 14, opacity: 0.82, marginTop: 4 }}>{s.countryName} · {s.time} · {s.left} left</div>
             </div>
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 5, background: 'rgba(255,255,255,.2)' }}><div style={{ height: '100%', width: s.pct, background: '#E1302A' }} /></div>
           </Link>
         ))}
-        {lv.length === 0 && <div style={{ border: '1px dashed rgba(22,18,14,.22)', borderRadius: 16, padding: 18, fontSize: 14, color: '#6A6056' }}>Nothing live at this location right now.</div>}
+        {lv.length === 0 && <div className="card" style={{ border: '1px dashed rgba(23,63,115,.25)', borderRadius: 16, padding: 18, fontSize: 14, color: 'var(--muted)' }}>Nothing live at this location right now.</div>}
       </div>
       <div>
         <div className="label" style={{ marginBottom: 10 }}>Up next</div>
@@ -128,9 +121,9 @@ function VenuePanel({ id, pick }: { id: VenueId; pick: (id: string) => void }) {
           {here.filter((s) => s.st === 'soon' || s.st === 'later').slice(0, 3).map((s) => (
             <Link key={s.id} to={s.href} className="srow card" style={{ padding: '12px 14px 12px 12px', borderRadius: 14 }}>
               <div className="bar" style={{ background: s.color }} />
-              <span className="mono" style={{ fontWeight: 700, fontSize: 15, width: 52 }}>{s.startT}</span>
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 700, fontSize: 15.5 }}>{s.title}</div><div style={{ fontSize: 13, color: '#6A6056' }}>{s.countryName} · {s.kind}</div></div>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: '#fff', background: '#16120E', borderRadius: 6, padding: '4px 8px', whiteSpace: 'nowrap' }}>{s.stLabel}</span>
+              <span className="mono" style={{ fontWeight: 700, fontSize: 13.5, width: 70, color: 'var(--navy)' }}>{s.startT}</span>
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 700, fontSize: 15.5 }}>{s.title}</div><div style={{ fontSize: 13, color: 'var(--muted)' }}>{s.countryName} · {s.kind}</div></div>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: '#fff', background: 'var(--navy)', borderRadius: 6, padding: '4px 8px', whiteSpace: 'nowrap' }}>{s.stLabel}</span>
             </Link>
           ))}
         </div>
@@ -138,12 +131,13 @@ function VenuePanel({ id, pick }: { id: VenueId; pick: (id: string) => void }) {
       <div>
         <div className="label" style={{ marginBottom: 10 }}>Today's programme here</div>
         <div className="card" style={{ borderRadius: 16, padding: '4px 16px' }}>
+          {here.length === 0 && <div style={{ padding: '14px 0', fontSize: 14, color: 'var(--muted)' }}>No programme items here. Everything takes place in the Main Arena.</div>}
           {here.map((s) => (
             <Link key={s.id} to={s.href} className="list-row" style={{ padding: '10px 0', opacity: s.op }}>
-              <span className="mono" style={{ fontSize: 13, fontWeight: 600, width: 48 }}>{s.startT}</span>
+              <span className="mono" style={{ fontSize: 12.5, fontWeight: 600, width: 70 }}>{s.startT}</span>
               <span style={{ width: 9, height: 9, borderRadius: 2, background: s.color }} />
               <span className="ellipsis" style={{ flex: 1, fontSize: 14.5, fontWeight: 600, minWidth: 0 }}>{s.title}</span>
-              <span style={{ fontSize: 12.5, color: '#6A6056' }}>{s.countryName}</span>
+              <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{s.countryName}</span>
               <span className="chip-st" style={{ background: s.stBg, color: s.stFg }}>{s.stLabel}</span>
             </Link>
           ))}
@@ -154,24 +148,11 @@ function VenuePanel({ id, pick }: { id: VenueId; pick: (id: string) => void }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 8 }}>
           {NEAR[id].map((fid) => facilityById(fid)!).map((f) => (
             <button key={f.id} onClick={() => pick(f.id === 'water' || f.id === 'prayer' ? 'other' : f.id)} className="card" style={{ textAlign: 'left', borderRadius: 14, padding: '12px 14px' }}>
-              <div style={{ fontSize: 14.5, fontWeight: 700 }}>{f.name}</div><div style={{ fontSize: 12, color: '#6A6056', marginTop: 2 }}>{f.where}</div>
+              <div style={{ fontSize: 14.5, fontWeight: 700 }}>{f.name}</div><div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{f.where}</div>
             </button>
           ))}
         </div>
       </div>
-      {related.length > 0 && (
-        <div>
-          <div className="label" style={{ marginBottom: 10 }}>Related demonstrations</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
-            {related.map((s) => (
-              <Link key={s.id} to={s.href} className="plain" style={{ height: 130, borderRadius: 14, overflow: 'hidden', position: 'relative', background: s.bg }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(10,8,6,.88))' }} />
-                <div style={{ position: 'absolute', left: 12, right: 12, bottom: 10, color: '#fff' }}><div style={{ fontSize: 11.5, opacity: 0.85 }}>{s.startT} · {s.venueShort}</div><div className="ellipsis" style={{ fontWeight: 700, fontSize: 15 }}>{s.title}</div></div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -182,11 +163,11 @@ function FacilityPanel({ sel }: { sel: string }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {items.map((f) => (
         <div key={f.id} className="card" style={{ borderRadius: 20, padding: 24 }}>
-          <h2 className="display" style={{ fontWeight: 900, fontSize: 40, lineHeight: 1, margin: 0 }}>{f.name}</h2>
-          <div style={{ fontSize: 15, color: '#4E463D', marginTop: 8 }}>{f.note}</div>
+          <h2 className="display" style={{ fontWeight: 900, fontSize: 40, lineHeight: 1, margin: 0, color: 'var(--navy)' }}>{f.name}</h2>
+          <div style={{ fontSize: 15, color: 'var(--body)', marginTop: 8 }}>{f.note}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
-            <div style={{ background: '#F4EEE4', borderRadius: 12, padding: '12px 14px' }}><div style={{ fontSize: 11, color: '#6A6056', textTransform: 'uppercase', letterSpacing: '.08em' }}>Where</div><div style={{ fontSize: 15, fontWeight: 600, marginTop: 3 }}>{f.where}</div></div>
-            <div style={{ background: '#F4EEE4', borderRadius: 12, padding: '12px 14px' }}><div style={{ fontSize: 11, color: '#6A6056', textTransform: 'uppercase', letterSpacing: '.08em' }}>Hours</div><div style={{ fontSize: 15, fontWeight: 600, marginTop: 3 }}>{f.hours}</div></div>
+            <div style={{ background: 'rgba(23,63,115,.06)', borderRadius: 12, padding: '12px 14px' }}><div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Where</div><div style={{ fontSize: 15, fontWeight: 600, marginTop: 3 }}>{f.where}</div></div>
+            <div style={{ background: 'rgba(23,63,115,.06)', borderRadius: 12, padding: '12px 14px' }}><div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Hours</div><div style={{ fontSize: 15, fontWeight: 600, marginTop: 3 }}>{f.hours}</div></div>
           </div>
         </div>
       ))}
@@ -208,36 +189,33 @@ export function Updates() {
   const a = settings.announcement;
   return (
     <div className="page">
-      <section className="band">
-        <div className="wrap band-in">
-          <div className="eyebrow">Updated live by event control</div>
-          <h1 className="h1">Live updates</h1>
-        </div>
-      </section>
-      <div className="wrap" style={{ paddingTop: 28, paddingBottom: 64, display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
-        <aside style={{ flex: '0 1 280px', minWidth: 240, position: 'sticky', top: 96, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <PageHead eyebrow="Updated live by event control" title="Live updates">
+        Schedule changes, notices and highlights, published by event control during the event.
+      </PageHead>
+      <div className="wrap" style={{ paddingTop: 20, display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
+        <aside style={{ flex: '0 1 280px', minWidth: 240, position: 'sticky', top: 104, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div className="label-muted">Show</div>
           {FILTERS.map(([label]) => <button key={label} onClick={() => setFilter(label)} className={'side-btn' + (filter === label ? ' on' : '')} aria-pressed={filter === label}>{label}</button>)}
           {a.on && (
-            <div style={{ marginTop: 16, background: '#F3A53A', borderRadius: 16, padding: 16 }}>
+            <div style={{ marginTop: 16, background: 'linear-gradient(135deg,#F28C28,#F9C512)', borderRadius: 16, padding: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Pinned announcement</div>
               <div style={{ fontWeight: 700, fontSize: 17, marginTop: 5 }}>{a.title}</div>
               <div style={{ fontSize: 13.5, marginTop: 4, lineHeight: 1.45 }}>{a.body}</div>
             </div>
           )}
         </aside>
-        <div style={{ flex: '1 1 560px', minWidth: 0, maxWidth: 820, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ flex: '1 1 560px', minWidth: 0, maxWidth: 820, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {list.map((u) => (
             <article key={u.id} className="card" style={{ borderRadius: 18, padding: '20px 22px', animation: 'ftsIn .4s ease both' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: u.tagInk }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: u.dot }} />{u.type}</span>
-                <span className="mono" style={{ fontSize: 12, color: '#6A6056' }}>{u.stamp} · {u.ago}</span>
+                <span className="mono" style={{ fontSize: 12, color: 'var(--muted)' }}>{u.stamp} · {u.ago}</span>
               </div>
               <div style={{ fontWeight: 700, fontSize: 19, marginTop: 9, lineHeight: 1.3 }}>{u.title}</div>
-              {u.body && <div style={{ fontSize: 15, color: '#4E463D', marginTop: 5, lineHeight: 1.5 }}>{u.body}</div>}
+              {u.body && <div style={{ fontSize: 15, color: 'var(--body)', marginTop: 5, lineHeight: 1.5 }}>{u.body}</div>}
             </article>
           ))}
-          {list.length === 0 && <div className="card" style={{ borderRadius: 18, padding: '28px 22px', color: '#6A6056', fontSize: 15 }}>No updates here yet.</div>}
+          {list.length === 0 && <div className="card" style={{ borderRadius: 18, padding: '28px 22px', color: 'var(--muted)', fontSize: 15 }}>No updates here yet. Schedule changes and notices from event control appear here as soon as they are published.</div>}
         </div>
       </div>
     </div>

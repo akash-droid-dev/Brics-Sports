@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { VENUES, hhmm, type UpdateType, type VenueId } from '../../shared/data.ts';
+import { VENUES, ampm, type UpdateType, type VenueId } from '../../shared/data.ts';
 import { UPDATE_TYPES, type LiveState, type LogEntry } from '../../shared/live.ts';
 import { HubProvider, TAG_COLORS, useHub } from '../lib/hub.tsx';
-import { Emblem, Qr } from '../components/chrome.tsx';
+import { Qr } from '../components/chrome.tsx';
+
+const Emblem = ({ size }: { size: number }) => <img src="/brand/logo-mark.png" alt="" width={size} height={size} style={{ display: 'block' }} />;
 import './admin.css';
 
 async function api<T = LiveState>(method: string, path: string, body?: unknown): Promise<T> {
@@ -75,7 +77,7 @@ function Console({ onState, onSignOut }: { onState: (s: LiveState) => void; onSi
   };
   const ctx = { run, busy };
   const signOut = async () => { await api('POST', '/logout').catch(() => {}); onSignOut(); };
-  const when = clock.phase === 'before' ? `Opens ${days[0].date}` : clock.phase === 'after' ? 'Event ended' : `${days[clock.day - 1].label} · ${hhmm(Math.floor(clock.minutes))}`;
+  const when = clock.phase === 'before' ? `Opens ${days[0].date}` : clock.phase === 'after' ? 'Event ended' : `${days[clock.day - 1].label} · ${ampm(Math.floor(clock.minutes))}`;
 
   return (
     <div className="adm">
@@ -154,7 +156,7 @@ function AnnouncementCard({ ctx }: { ctx: Ctx }) {
 function SessionsCard({ ctx }: { ctx: Ctx }) {
   const { all, clock, days } = useHub();
   const [day, setDay] = useState(clock.day);
-  const [venue, setVenue] = useState<VenueId>('fop2');
+  const [venue, setVenue] = useState<VenueId>('main');
   const [notify, setNotify] = useState(true);
   const [moveTo, setMoveTo] = useState<Record<string, VenueId>>({});
   const list = all.filter((s) => s.day === day && s.venue === venue && s.st !== 'done').sort((a, b) => a.start - b.start);
@@ -176,7 +178,7 @@ function SessionsCard({ ctx }: { ctx: Ctx }) {
             <div key={s.id} className="adm-sess">
               <div className="adm-sess-main">
                 <span className="mono">{s.time}</span>
-                <span className="adm-sess-t">{s.title}<small>{s.countryName} · {s.kind}</small></span>
+                <span className="adm-sess-t">{s.title}<small>{s.c ? s.c.name + ' · ' : ''}{s.kind}</small></span>
                 {s.isLive && <span className="adm-pill live">LIVE</span>}
                 {s.changed && <span className="adm-pill changed">CHANGED</span>}
               </div>
