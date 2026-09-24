@@ -5,7 +5,12 @@ This folder is a copy of `../app` adapted for Netlify's free plan. Keep developi
 The public Live Hub website and its Event Control admin, built from the Claude Design handoff (`../project/Event Live Hub Website.dc.html`).
 
 - **Public site** (`/`): Live now, Schedule, Countries, Sports, Venue map (3D), Updates and About us. LIVE badges, countdowns, progress bars and the now-line all follow the real clock in the event's time zone.
-- **Event control** (`/admin`): password sign-in. From here you can publish or take down the announcement banner, delay or move sessions (and optionally post a schedule-change update automatically), post or remove live updates, and edit the event name, URL, dates and time zone. It also shows the real, scannable QR code, which you can copy or download as SVG, plus a publish log.
+- **Event control** (`/admin`): password sign-in. From here you can:
+  - publish or take down the announcement banner, delay or move sessions (optionally posting a schedule-change update), and post or remove live updates;
+  - **Live video**: paste any YouTube link (a video, a live stream, a Shorts link or a channel's live page) to add it to the video library, then pick which one plays on the home page's Live Now screen, edit or remove videos, or turn the video off;
+  - **QR code**: upload your own QR image, change it or remove it (the site then goes back to the generated QR for the public URL);
+  - **Countries and sports**: view, add, edit or remove any country (name, code, flag, colour, introduction, flag image and country photo) or sport (name, country, type, description, photo and photo credit). Images can be uploaded or linked;
+  - edit the event name, URL, dates and time zone, and see a publish log.
 - **Live push**: every change goes out to all open pages over Server-Sent Events, with no reload. Visitors see a "Live update" toast.
 
 ## Run
@@ -36,10 +41,10 @@ This folder is ready for Netlify: its own `netlify.toml` builds it. The API runs
 ```bash
 npm install
 npx netlify-cli login                        # opens the browser once
-npx netlify-cli link --id 3c907e66-d43a-4537-af67-19800e2a3b62   # the timely-bubblegum-1f249e project
-npx netlify-cli env:set ADMIN_PASSWORD "choose-a-strong-one"
-npx netlify-cli deploy --build --prod
+npx netlify-cli deploy --build --prod --site 3c907e66-d43a-4537-af67-19800e2a3b62   # the timely-bubblegum-1f249e project
 ```
+
+Set the admin password once in Netlify: **Project configuration → Environment variables → Add a variable**, key `ADMIN_PASSWORD`, then redeploy.
 
 Your site is then live at `https://<site-name>.netlify.app`, with the admin at `/admin`.
 
@@ -61,6 +66,9 @@ This copy is set up for **https://timely-bubblegum-1f249e.netlify.app** (Netlify
 
 - Content lives in `shared/data.ts`: the 11 participating countries (flags in `public/flags`, from the MIT-licensed flag-icons set), 33 traditional sports, and the 12 October 2026 show flow. The seven demonstration slots run in `DEMO_ORDER`; change that list to change which countries present and in what order. After changing the programme, bump `SEED_VERSION` on the server so stored schedule changes for old items are cleared.
 - Brand assets live in `public/brand`: the page background (world map and ribbons), the home banner, the logo and the mascot (background removed). Set the mascot's name in `MASCOT.name` in `shared/data.ts`.
-- Sports have no photos or clips yet, so cards use each country's flag as artwork. Add a `photo` or `video` to a sport in `shared/data.ts` and it is used automatically. Flags that carry sacred inscriptions (Saudi Arabia, Iran) are shown only as badges, never as tinted background art.
+- Most sports come with a photo from Wikimedia Commons (credited on each sport's page). Eleven have no free photo yet and use their country's flag as artwork until you upload one in Event control: Mas-Wrestling, Intonga, Kgati, Jukskei, Horse Dancing, Seega, Genna, Gugs, Donga, Koshti Chokheh and Almezmar. Flags that carry sacred inscriptions (Saudi Arabia, Iran) are shown only as badges, never as tinted background art.
+- Countries, sports, videos and the QR image are stored with the live state, so edits in Event control survive restarts and redeploys. **Reset** in Event control clears schedule changes and updates only; it keeps your countries, sports, videos and QR. The defaults in `shared/data.ts` are used only on first start.
+- Uploaded images (PNG, JPG, WebP or GIF, up to 4 MB, resized in the browser first) are served from `/api/media/…`. On the Node server they are saved in `data/media/` next to the state file; on Netlify they go into the `live-hub-media` Blobs store. An image nobody uses any more is deleted automatically.
+- YouTube: the Live Now screen plays the chosen video muted and looping as a background; **Watch** opens it full-size with sound. Some owners turn off embedding for their videos; if one shows "Video unavailable", pick or add another in Event control.
 - The Live Now card leads with the country demonstration that is live, otherwise whatever is on, otherwise the next item, badged **UP NEXT** rather than LIVE.
 - The API lives in `server/core.ts` as a plain `Request → Response` handler, shared by the Node server (`server/index.ts`: JSON file + instant push) and Netlify (`netlify/functions/api.ts`: Blobs + 5-second refresh). Writes are conditional, so two admins publishing at once don't overwrite each other.

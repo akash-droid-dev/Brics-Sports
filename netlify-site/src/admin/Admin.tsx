@@ -3,19 +3,19 @@ import { Link } from 'react-router-dom';
 import { VENUES, ampm, type UpdateType, type VenueId } from '../../shared/data.ts';
 import { UPDATE_TYPES, type LiveState, type LogEntry } from '../../shared/live.ts';
 import { HubProvider, TAG_COLORS, useHub } from '../lib/hub.tsx';
-import { Qr } from '../components/chrome.tsx';
+import { CountriesCard, QrCard, SportsCard, VideosCard } from './Manage.tsx';
 
 const Emblem = ({ size }: { size: number }) => <img src="/brand/logo-mark.png" alt="" width={size} height={size} style={{ display: 'block' }} />;
 import './admin.css';
 
-async function api<T = LiveState>(method: string, path: string, body?: unknown): Promise<T> {
+export async function api<T = LiveState>(method: string, path: string, body?: unknown): Promise<T> {
   const r = await fetch('/api/admin' + path, { method, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined, credentials: 'same-origin' });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw Object.assign(new Error(data.error ?? `Request failed (${r.status})`), { status: r.status });
   return data as T;
 }
 
-type Ctx = { run: (label: string, fn: () => Promise<LiveState>) => Promise<boolean>; busy: string | null };
+export type Ctx = { run: (label: string, fn: () => Promise<LiveState>) => Promise<boolean>; busy: string | null };
 
 export default function Admin({ state, onState }: { state: LiveState; onState: (s: LiveState) => void }) {
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -99,10 +99,13 @@ function Console({ onState, onSignOut }: { onState: (s: LiveState) => void; onSi
           <AnnouncementCard ctx={ctx} />
           <SessionsCard ctx={ctx} />
           <UpdatesCard ctx={ctx} />
+          <VideosCard ctx={ctx} />
+          <CountriesCard ctx={ctx} />
+          <SportsCard ctx={ctx} />
           <SettingsCard ctx={ctx} />
         </div>
         <aside className="adm-col adm-side">
-          <QrCard />
+          <QrCard ctx={ctx} />
           <div className="adm-card">
             <div className="adm-label">Publish log</div>
             {log.slice(0, 12).map((l, i) => (
@@ -112,8 +115,8 @@ function Console({ onState, onSignOut }: { onState: (s: LiveState) => void; onSi
           </div>
           <div className="adm-card">
             <div className="adm-label">Reset</div>
-            <p className="adm-muted" style={{ marginTop: 0 }}>Restore the sample content: clears schedule changes, posted updates and settings.</p>
-            <button className="adm-btn danger" disabled={!!busy} onClick={() => { if (confirm('Reset all live content to the sample data? This cannot be undone.')) run('Reset', () => api('POST', '/reset')); }}>Reset to sample content</button>
+            <p className="adm-muted" style={{ marginTop: 0 }}>Restore the starting programme: clears schedule changes, posted updates, the announcement and event settings. Countries, sports, videos and the QR image are kept.</p>
+            <button className="adm-btn danger" disabled={!!busy} onClick={() => { if (confirm('Reset schedule changes, updates, the announcement and settings? Countries, sports, videos and the QR are kept. This cannot be undone.')) run('Reset', () => api('POST', '/reset')); }}>Reset programme & updates</button>
           </div>
         </aside>
       </div>
@@ -121,7 +124,7 @@ function Console({ onState, onSignOut }: { onState: (s: LiveState) => void; onSi
   );
 }
 
-function Card({ n, color, title, sub, children }: { n: string; color: string; title: string; sub: string; children: ReactNode }) {
+export function Card({ n, color, title, sub, children }: { n: string; color: string; title: string; sub: string; children: ReactNode }) {
   return (
     <section className="adm-card">
       <div className="adm-card-h">
@@ -237,7 +240,7 @@ function SettingsCard({ ctx }: { ctx: Ctx }) {
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   const zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [];
   return (
-    <Card n="04" color="#9FC7A8" title="Event settings" sub="Name, web address and the dates and time zone that drive LIVE, Up next and the schedule.">
+    <Card n="08" color="#9FC7A8" title="Event settings" sub="Name, web address and the dates and time zone that drive LIVE, Up next and the schedule.">
       <div className="adm-2col">
         <label className="adm-field"><span>Event name</span><input value={f.eventName} onChange={set('eventName')} /></label>
         <label className="adm-field"><span>Public URL</span><input value={f.publicUrl} onChange={set('publicUrl')} /></label>
@@ -251,33 +254,5 @@ function SettingsCard({ ctx }: { ctx: Ctx }) {
       <p className="adm-muted" style={{ marginTop: 0 }}>Changing the public URL changes the QR code. Only do this before printing.</p>
       <div className="adm-row"><button className="adm-btn primary" disabled={!!ctx.busy} onClick={() => ctx.run('Settings', () => api('PUT', '/settings', f))}>Save settings</button></div>
     </Card>
-  );
-}
-
-function QrCard() {
-  const { settings } = useHub();
-  const [copied, setCopied] = useState(false);
-  const url = 'https://' + settings.publicUrl;
-  const copy = async () => { try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { prompt('Copy the public URL', url); } };
-  const download = () => {
-    const svg = document.querySelector('#adm-qr svg');
-    if (!svg) return;
-    const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' });
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'event-qr.svg' });
-    a.click(); URL.revokeObjectURL(a.href);
-  };
-  return (
-    <div className="adm-qr">
-      <div id="adm-qr"><Qr url={settings.publicUrl} size={120} /></div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>Universal Event QR</div>
-        <div style={{ fontSize: 12, color: '#2F8F46', fontWeight: 700, marginTop: 2 }}>● ACTIVE · unchanged</div>
-        <div className="mono" style={{ fontSize: 12, marginTop: 6, wordBreak: 'break-all' }}>{settings.publicUrl}</div>
-        <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
-          <button onClick={copy} style={{ fontSize: 12.5, fontWeight: 600, color: '#B8411A' }}>{copied ? 'Copied ✓' : 'Copy public URL'}</button>
-          <button onClick={download} style={{ fontSize: 12.5, fontWeight: 600, color: '#B8411A' }}>Download SVG</button>
-        </div>
-      </div>
-    </div>
   );
 }

@@ -4,19 +4,71 @@
 
 export type SportType = 'Wrestling' | 'Combat' | 'Team' | 'Target' | 'Strength' | 'Skill' | 'Equestrian';
 export type VenueId = 'main' | 'fop1' | 'fop2' | 'fop3' | 'tsz' | 'cz';
-export interface Country { id: string; name: string; code: string; iso2: string; color: string; story: string; /** Flag carries sacred inscriptions: show it only as a badge, never as background art. */ inscribed?: boolean }
-export interface Sport { id: string; c: string; name: string; type: SportType; photo: string | null; video?: string; about: string }
+export interface Country {
+  id: string; name: string; code: string; iso2: string; color: string; story: string;
+  /** Flag carries sacred inscriptions: show it only as a badge, never as background art. */
+  inscribed?: boolean;
+  /** Uploaded flag image; falls back to /flags/<iso2>.svg. */
+  flag?: string | null;
+  /** Uploaded photo for the country's cards and page header. */
+  image?: string | null;
+}
+export interface Sport {
+  id: string; c: string; name: string; type: SportType; photo: string | null; video?: string; about: string;
+  /** Who took the photo / where it comes from, shown under it (free licences require credit). */
+  photoCredit?: string;
+  photoSource?: string;
+}
 export interface Venue { id: VenueId; name: string; short: string; kind: string; desc: string; cap: string }
 export interface Facility { id: string; name: string; note: string; where: string; hours: string }
 /** One item of the show flow. `country` is set for a country's demonstration slot, null for ceremony items. */
-export interface Session { id: string; day: number; start: number; end: number; venue: VenueId; sport: string | null; country: string | null; kind: string; title: string; brief: string }
+export interface Session { id: string; day: number; start: number; end: number; venue: VenueId; sport: string | null; country: string | null; kind: string; title: string; brief: string; /** Country 1–7 of the show flow, for demonstration slots. */ slot?: number }
 export type UpdateType = 'Schedule change' | 'Notice' | 'Highlight' | 'Facility';
 
 export const EVENT_DAYS = 1;
 export const DAY_START = 9 * 60;
 export const DAY_END = 15 * 60 + 30;
 
-export const flagUrl = (c: Country) => `/flags/${c.iso2}.svg`;
+export const flagUrl = (c: Country) =>
+  c.flag || (c.iso2 ? `/flags/${c.iso2}.svg` : `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"><rect width="4" height="3" fill="${c.color}"/></svg>`)}`);
+
+export const SPORT_TYPES: SportType[] = ['Wrestling', 'Combat', 'Team', 'Target', 'Strength', 'Skill', 'Equestrian'];
+
+// Photos: freely licensed images on Wikimedia Commons, loaded by visitors' browsers.
+// Special:FilePath redirects to the file at a sensible width, whatever its original size.
+const COMMONS = (file: string) => ({
+  photo: `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=960`,
+  photoCredit: 'Wikimedia Commons',
+  photoSource: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file)}`,
+});
+const THUMB = (path: string, w = 960) => {
+  const file = path.split('/').pop()!;
+  return { photo: `https://upload.wikimedia.org/wikipedia/commons/thumb/${path}/${w}px-${file}`, photoCredit: 'Wikimedia Commons', photoSource: `https://commons.wikimedia.org/wiki/File:${file}` };
+};
+const PHOTOS: Record<string, ReturnType<typeof COMMONS>> = {
+  kabaddi: THUMB('1/1f/Iran_men%27s_national_kabaddi_team_13970602000432636707284535394012_98208.jpg'),
+  khokho: THUMB('2/2c/Kho_Kho_game_at_a_Government_school_in_Haryana%2C_India.jpg'),
+  mallakhamb: THUMB('3/39/Malakhambha_pradarshana_Nudisir_2015_02.JPG'),
+  capoeira: THUMB('1/19/Rugendasroda.jpg'),
+  peteca: { photo: 'https://upload.wikimedia.org/wikipedia/commons/a/aa/Modernpeteca.jpg', photoCredit: 'Wikimedia Commons', photoSource: 'https://commons.wikimedia.org/wiki/File:Modernpeteca.jpg' },
+  huka: THUMB('6/66/Huka_huka_fight_Kuarup_ceremony.jpg', 500),
+  silat: THUMB('e/e2/DSC_3099_wikimedia2020_deni_dahniel_atraksi_silek_minagkabau.jpg'),
+  lapta: COMMONS('Игра_в_лапту_в_России.jpg'),
+  gorodki: COMMONS('Gorodki-kolodetz.jpg'),
+  wushu: COMMONS('Wushu_(sport).jpg'),
+  jianzi: COMMONS('Jianzi.jpg'),
+  dragonboat: COMMONS('Dragon_boat_racing.jpg'),
+  tahtib: COMMONS('Saho_Ra_Tahtib_-_Abou_Sir.jpg'),
+  zurkhaneh: COMMONS('Saheb_A_Zaman_Club_Zurkhaneh,_Yazd,_Iran_(5072483704).jpg'),
+  chogan: COMMONS('Polo_game_from_poem_Guy_u_Chawgan.jpg'),
+  falconry: COMMONS('The_Falcon_-_The_National_Bird_of_the_UAE_(2).jpg'),
+  dhow: COMMONS('Dhow_Wharfage,_Dubai,_UAE_(4325118069).jpg'),
+  saluki: COMMONS('Saluki_dog_breed.jpg'),
+  egrang: COMMONS('Festival_Egrang_Ledokombo_Jember_-_1.jpg'),
+  gasing: COMMONS('Bermain_Gasing.jpg'),
+  camel: COMMONS('Dubai_camel_race.jpg'),
+  arabhorse: COMMONS('Halterstandingshotarabianone.jpg'),
+};
 
 export const COUNTRIES: Country[] = [
   { id: 'bra', name: 'Brazil', code: 'BRA', iso2: 'br', color: '#00923F', story: 'Capoeira circles, the feathered hand-shuttle of peteca and huka-huka wrestling from the Xingu peoples.' },
@@ -32,7 +84,7 @@ export const COUNTRIES: Country[] = [
   { id: 'sau', name: 'Saudi Arabia', code: 'SAU', iso2: 'sa', color: '#006C35', inscribed: true, story: 'Camel racing, Arabian horsemanship and the stick game of almezmar from the Hejaz.' },
 ];
 
-export const SPORTS: Sport[] = [
+const SPORTS_RAW: Sport[] = [
   { id: 'capoeira', c: 'bra', name: 'Capoeira', type: 'Combat', photo: null, about: 'Played in a roda to the berimbau: kicks, escapes and acrobatics in a continuous conversation between two players.' },
   { id: 'peteca', c: 'bra', name: 'Peteca', type: 'Skill', photo: null, about: 'A feathered hand-shuttle struck over a net with the palm, with roots in Tupi games.' },
   { id: 'huka', c: 'bra', name: 'Huka-Huka', type: 'Wrestling', photo: null, about: 'Xingu wrestling that opens from kneeling, part of the Kuarup ceremony honouring ancestors.' },
@@ -77,6 +129,8 @@ export const SPORTS: Sport[] = [
   { id: 'arabhorse', c: 'sau', name: 'Arabian Horsemanship', type: 'Equestrian', photo: null, about: 'Riding and racing the Arabian horse, bred on the peninsula for centuries.' },
   { id: 'mizmar', c: 'sau', name: 'Almezmar', type: 'Skill', photo: null, about: 'A stick game and dance of the Hejaz, performed to drums and chanting. On UNESCO\'s intangible heritage list.' },
 ];
+
+export const SPORTS: Sport[] = SPORTS_RAW.map((s) => ({ ...s, ...(PHOTOS[s.id] ?? {}) }));
 
 // Veer Savarkar Sports Complex. The programme runs in the Main Arena; the other areas are an
 // indicative layout for visitor guidance until the venue plan is confirmed.
@@ -142,7 +196,7 @@ export function buildSessions(): Session[] {
     const start = T(10, 15) + i * 30;
     const sports = SPORTS.filter((s) => s.c === cid).map((s) => s.name).join(', ');
     out.push({
-      id: `d1-${start}`, day: 1, start, end: start + 30, venue: 'main', sport: null, country: cid, kind: 'Demonstration',
+      id: `d1-${start}`, day: 1, start, end: start + 30, venue: 'main', sport: null, country: cid, kind: 'Demonstration', slot: i + 1,
       title: `${c.name}: Demonstration Games`,
       brief: `${i === 0 ? 'Transition to the Demonstration Games. ' : ''}Country ${i + 1}: ${c.name} presents ${sports}.`,
     });
@@ -160,5 +214,12 @@ export const countryById = (id: string) => COUNTRIES.find((c) => c.id === id)!;
 export const sportById = (id: string) => SPORTS.find((s) => s.id === id);
 export const venueById = (id: string) => VENUES.find((v) => v.id === id);
 export const facilityById = (id: string) => FACILITIES.find((f) => f.id === id);
+
+/** Videos offered in the admin's library at first start. Embedding can be switched off by a video's owner;
+ * if one shows "Video unavailable", pick another in the admin. */
+export const DEFAULT_VIDEOS = [
+  { id: 'v-pkl-final', title: 'Kabaddi: Pro Kabaddi League final highlights', url: 'https://www.youtube.com/watch?v=uDA3kOwmD-g' },
+  { id: 'v-pkl-final-2', title: 'Kabaddi: Haryana Steelers vs Patna Pirates, PKL final', url: 'https://www.youtube.com/watch?v=y_iNp6x0EtY' },
+];
 
 export const MASCOT = { name: '', image: '/brand/mascot-600.png', thumb: '/brand/mascot-160.png' };

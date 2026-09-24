@@ -20,7 +20,7 @@ export function Logo({ height = 50, mark = false }: { height?: number; mark?: bo
 }
 
 /** A scannable QR for the public URL, drawn with a red centre mark. */
-export function Qr({ url, size = 110, bg = '#FFFFFF' }: { url: string; size?: number; bg?: string }) {
+export function Qr({ url, size = 110, bg = '#FFFFFF', image }: { url: string; size?: number; bg?: string; image?: string | null }) {
   const { n, cells } = useMemo(() => {
     const q = QRCode.create('https://' + url, { errorCorrectionLevel: 'H' });
     const n = q.modules.size, out: string[] = [];
@@ -28,6 +28,8 @@ export function Qr({ url, size = 110, bg = '#FFFFFF' }: { url: string; size?: nu
     return { n, cells: out.join('') };
   }, [url]);
   const m = n * 0.2, o = (n - m) / 2;
+  // An uploaded QR (from Event control) replaces the generated one.
+  if (image) return <img src={image} alt={`QR code for ${url}`} width={size} height={size} style={{ display: 'block', flexShrink: 0, objectFit: 'contain', background: bg }} />;
   return (
     <svg viewBox={`-2 -2 ${n + 4} ${n + 4}`} width={size} height={size} shapeRendering="crispEdges" style={{ display: 'block', flexShrink: 0 }} role="img" aria-label={`QR code for ${url}`}>
       <rect x="-2" y="-2" width={n + 4} height={n + 4} fill={bg} />
@@ -113,7 +115,7 @@ export function Footer() {
       <div className="wrap ftr-in">
         <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
           <div style={{ background: '#fff', borderRadius: 16, padding: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <Qr url={settings.publicUrl} size={104} />
+            <Qr url={settings.publicUrl} image={settings.qrImage} size={104} />
             <Logo height={64} />
           </div>
           <div style={{ maxWidth: 420 }}>

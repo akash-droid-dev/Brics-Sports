@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, Navigate, useLocation } from 'react-router-dom';
-import { COUNTRIES, SPORTS, VENUES, countryById, flagUrl, sportById } from '../../shared/data.ts';
+import { VENUES, flagUrl } from '../../shared/data.ts';
 import { BRAND, flagArt, useHub, type SportView } from '../lib/hub.tsx';
 import { BackButton, PageHead, Stripe } from '../components/chrome.tsx';
 import { Clip } from '../components/Clip.tsx';
@@ -101,6 +101,7 @@ export function Schedule() {
 // ================= Countries =================
 
 export function Countries() {
+  const { countries: COUNTRIES, sportsList: SPORTS, countryById, sportById } = useHub();
   const { all } = useHub();
   return (
     <div className="page">
@@ -154,6 +155,7 @@ function SportCard({ s, showCountry = true }: { s: SportView; showCountry?: bool
 }
 
 export function CountryDetail() {
+  const { countries: COUNTRIES, sportsList: SPORTS, countryById, sportById } = useHub();
   const { id } = useParams();
   const { sports, all } = useHub();
   const c = COUNTRIES.find((x) => x.id === id);
@@ -217,6 +219,7 @@ export function CountryDetail() {
 const TYPES = ['All', 'Wrestling', 'Combat', 'Team', 'Target', 'Strength', 'Skill', 'Equestrian'];
 
 export function Sports() {
+  const { countries: COUNTRIES, sportsList: SPORTS, countryById, sportById } = useHub();
   const { sports } = useHub();
   const [q, setQ] = useState('');
   const [type, setType] = useState('All');
@@ -247,6 +250,7 @@ export function Sports() {
 }
 
 export function SportDetail() {
+  const { countries: COUNTRIES, sportsList: SPORTS, countryById, sportById } = useHub();
   const { id } = useParams();
   const { sports, all } = useHub();
   const [playing, setPlaying] = useState(false);
@@ -255,6 +259,7 @@ export function SportDetail() {
   if (!sp) return <Navigate to="/sports" replace />;
   const vm = sports.find((s) => s.id === sp.id)!;
   const c = countryById(sp.c);
+  if (!c) return <Navigate to="/sports" replace />;
   const slot = all.find((s) => s.c === c);
   const siblings = sports.filter((s) => s.c === sp.c && s.id !== sp.id);
   const related = sports.filter((s) => s.type === sp.type && s.c !== sp.c).slice(0, 6);
@@ -272,6 +277,11 @@ export function SportDetail() {
               <div className="wrap" style={{ paddingBottom: 36 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 15, fontWeight: 600 }}><img className="flag" src={flagUrl(c)} alt="" width={26} height={19} />{c.name} · {sp.type}</div>
                 <h1 className="display" style={{ fontWeight: 900, fontSize: 'clamp(52px,7vw,100px)', lineHeight: 0.88, margin: '8px 0 0' }}>{sp.name}</h1>
+                {sp.photo && sp.photoCredit && (
+                  <div style={{ fontSize: 12, opacity: 0.8, marginTop: 10 }}>
+                    Photo: {sp.photoSource ? <a href={sp.photoSource} target="_blank" rel="noopener noreferrer" style={{ color: '#fff', textDecoration: 'underline' }}>{sp.photoCredit}</a> : sp.photoCredit}
+                  </div>
+                )}
                 {sp.video && (
                   <button onClick={() => setPlaying(true)} style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10, height: 48, borderRadius: 24, background: '#fff', color: BRAND.ink, padding: '0 20px 0 7px', fontWeight: 700, fontSize: 15 }}>
                     <span style={{ width: 36, height: 36, borderRadius: '50%', background: BRAND.red, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="12" height="14" viewBox="0 0 10 12" aria-hidden="true"><path d="M1 1 L9 6 L1 11 Z" fill="#fff" /></svg></span>Watch clip

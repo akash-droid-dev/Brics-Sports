@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  COUNTRIES, EVENT_DAYS, SESSIONS, SPORTS, VENUES, ampm, countryById, flagUrl, sportById, venueById,
+  COUNTRIES, EVENT_DAYS, SESSIONS, SPORTS, VENUES, ampm, flagUrl, venueById,
   type Country, type Session, type Sport, type VenueId,
 } from '../../shared/data.ts';
 import { dayDateLabel, eventClock, zonedToEpoch, type EventClock, type LiveState, type LiveUpdate } from '../../shared/live.ts';
@@ -76,20 +76,26 @@ export { ampm };
 export const ampmRange = (a: number, b: number) => { const x = ampm(a), y = ampm(b); return x.slice(-2) === y.slice(-2) ? `${x.slice(0, -3)}–${y}` : `${x} – ${y}`; };
 
 /** Artwork for a country: its flag under a tint of the country colour. */
-export const flagArt = (c: Country) => c.inscribed
+export const flagArt = (c: Country): string => c.image
+  ? `linear-gradient(180deg, rgba(12,24,48,.05), rgba(12,24,48,.35)), url("${c.image}") center/cover no-repeat, ${plainFlagArt(c)}`
+  : plainFlagArt(c);
+const plainFlagArt = (c: Country) => c.inscribed
   ? `radial-gradient(circle at 80% 20%, ${rgba('#FFFFFF', 0.16)}, transparent 55%), linear-gradient(135deg, ${c.color}, rgba(12,24,48,.92))`
   : `linear-gradient(135deg, ${rgba(c.color, 0.72)}, rgba(12,24,48,.86)), url("${flagUrl(c)}") center/cover no-repeat, ${c.color}`;
 /** Artwork for a sport: a real photo when one is set, otherwise the country flag art. */
-export const artBg = (photo: string | null | undefined, c: Country) => (photo ? `url("${photo}") center/cover no-repeat, ${c.color}` : flagArt(c));
+/** A sport's artwork: its photo when set, over the country art, so a photo that fails to load still looks designed. */
+export const artBg = (photo: string | null | undefined, c: Country) => (photo ? `url("${photo}") center/cover no-repeat, ${flagArt(c)}` : flagArt(c));
 /** Artwork for ceremony items: the event banner. */
 export const BANNER_ART = 'linear-gradient(180deg, rgba(12,24,48,.05), rgba(12,24,48,.35)), url("/brand/banner-1200.jpg") center/cover no-repeat, #fff';
 export const BRAND = { navy: '#173F73', ink: '#1C2434', muted: '#5B6577', orange: '#F28C28', red: '#E1302A', green: '#1FA650', yellow: '#F9C512', blue: '#2C4C9C' };
 const KIND_COLORS: Record<string, string> = { Ceremony: BRAND.orange, Address: BRAND.navy, 'AV presentation': BRAND.blue, Cultural: BRAND.green, Break: '#9AA3B2', Demonstration: BRAND.red };
 
-function sessionView(s: Session, state: LiveState, clock: EventClock): SessionView {
+interface Lookup { country: (id: string) => Country | undefined; sport: (id: string) => Sport | undefined; sportsOf: (cid: string) => Sport[] }
+
+function sessionView(s: Session, state: LiveState, clock: EventClock, L: Lookup): SessionView {
   const o = state.overrides[s.id] ?? {};
   const start = o.start ?? s.start, end = o.end ?? s.end, venue = o.venue ?? s.venue;
-  const c = s.country ? countryById(s.country) : null, sp = s.sport ? sportById(s.sport)! : null, v = venueById(venue)!;
+  const c = s.country ? L.country(s.country) ?? null : null, sp = s.sport ? L.sport(s.sport) ?? null : null, v = venueById(venue)!;
   const now = clock.minutes;
   let st: Status;
   if (clock.phase === 'before') st = 'later';
@@ -106,7 +112,12 @@ function sessionView(s: Session, state: LiveState, clock: EventClock): SessionVi
     id: s.id, day: s.day, start, end, venue, st, sp, c,
     startT: ampm(start), time: ampmRange(start, end), dayShort: dayLabel,
     venueName: v.name, venueShort: v.short, countryName: c ? c.name : s.kind, color: c ? c.color : KIND_COLORS[s.kind] ?? BRAND.navy,
-    title: s.title, brief: s.brief, kind: s.kind,
+    // Demonstration slots take the country's current name and sports from the admin-edited content.
+    title: s.country ? `${c ? c.name : `Country ${s.slot}`}: Demonstration Games` : s.title,
+    brief: s.country
+      ? `${s.slot === 1 ? 'Transition to the Demonstration Games. ' : ''}Country ${s.slot}: ${c ? `${c.name} presents ${L.sportsOf(c.id).map((x) => x.name).join(', ') || 'traditional sports'}.` : 'to be confirmed.'}`
+      : s.brief,
+    kind: s.kind,
     bg: c ? flagArt(c) : BANNER_ART, video: sp?.video,
     isLive: st === 'live', stLabel, stBg: colors[0], stFg: colors[1], op: st === 'done' ? 0.55 : 1,
     border: st === 'live' ? `1.5px solid ${BRAND.red}` : o.changed ? `1.5px solid ${BRAND.orange}` : '1px solid rgba(23,63,115,.12)',
@@ -123,8 +134,8 @@ export interface SportView {
   noPhoto: boolean; initials: string; isLive: boolean; nextLabel: string; photo: string | null;
 }
 
-function sportView(sp: Sport, all: SessionView[]): SportView {
-  const c = countryById(sp.c);
+function sportView(sp: Sport, all: SessionView[], L: Lookup): SportView {
+  const c = L.country(sp.c) ?? { id: sp.c, name: 'Unknown', code: '', iso2: '', color: '#173F73', story: '' };
   const slot = all.find((x) => x.c === c && x.kind === 'Demonstration');
   const nextLabel = !slot ? `${c.name} delegation`
     : slot.isLive ? '● Live now in the ' + slot.venueName
@@ -144,11 +155,16 @@ export const TAG_COLORS: Record<string, [string, string]> = {
 
 function buildHub(state: LiveState, now: number) {
   const clock = eventClock(now, state.settings, EVENT_DAYS);
-  const all = SESSIONS.map((s) => sessionView(s, state, clock));
+  const countries = state.content?.countries ?? COUNTRIES;
+  const sportsList = state.content?.sports ?? SPORTS;
+  const cMap = new Map(countries.map((c) => [c.id, c])), sMap = new Map(sportsList.map((x) => [x.id, x]));
+  const L: Lookup = { country: (id) => cMap.get(id), sport: (id) => sMap.get(id), sportsOf: (cid) => sportsList.filter((x) => x.c === cid) };
+  const all = SESSIONS.map((s) => sessionView(s, state, clock, L));
   const today = all.filter((s) => s.day === clock.day);
   const live = today.filter((s) => s.isLive).sort((a, b) => vo(a) - vo(b));
   const upcoming = today.filter((s) => s.st === 'soon' || s.st === 'later').sort((a, b) => a.start - b.start || vo(a) - vo(b));
-  const sports = SPORTS.map((sp) => sportView(sp, all));
+  const sports = sportsList.map((sp) => sportView(sp, all, L));
+  const video = state.liveVideo ? state.videos?.find((v) => v.id === state.liveVideo) ?? null : null;
   const hm = (ms: number) => new Intl.DateTimeFormat('en-US', { timeZone: state.settings.timezone, hour: 'numeric', minute: '2-digit' }).format(ms);
   const ago = (at: number) => { const d = Math.round((now - at) / 60000); return d < 1 ? 'just now' : d < 60 ? d + ' min ago' : d < 1440 ? Math.floor(d / 60) + ' h ago' : Math.floor(d / 1440) + ' d ago'; };
   const updates: UpdateView[] = state.updates
@@ -156,7 +172,7 @@ function buildHub(state: LiveState, now: number) {
     .sort((a, b) => b.at - a.at)
     .map((u) => ({ ...u, ago: ago(u.at), stamp: hm(u.at), dot: TAG_COLORS[u.type][0], tagInk: TAG_COLORS[u.type][1] }));
   const days = Array.from({ length: EVENT_DAYS }, (_, i) => ({ d: i + 1, label: 'Day ' + (i + 1), date: dayDateLabel(state.settings.startDate, i + 1) }));
-  return { state, settings: state.settings, clock, all, today, live, upcoming, upNext: upcoming.slice(0, 4), sports, updates, days };
+  return { state, settings: state.settings, clock, all, today, live, upcoming, upNext: upcoming.slice(0, 4), sports, updates, days, countries, sportsList, countryById: L.country, sportById: L.sport, sportsOf: L.sportsOf, video };
 }
 
 export type Hub = ReturnType<typeof buildHub>;
@@ -180,4 +196,4 @@ export function useStored<T>(key: string, init: T) {
   return [v, set] as const;
 }
 
-export { COUNTRIES, SPORTS, VENUES };
+export { VENUES };
