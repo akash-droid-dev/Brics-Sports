@@ -26,7 +26,7 @@ export type Env = Record<string, string | undefined>;
 export function seed(env: Env): Doc {
   const settings = {
     eventName: env.EVENT_NAME ?? 'BRICS Traditional & Indigenous Sports 2026',
-    publicUrl: env.PUBLIC_URL ?? 'bricssports.netlify.app',
+    publicUrl: env.PUBLIC_URL ?? 'timely-bubblegum-1f249e.netlify.app',
     timezone: env.EVENT_TIMEZONE ?? 'Asia/Kolkata',
     startDate: env.EVENT_START_DATE ?? '2026-10-12',
     place: 'Veer Savarkar Sports Complex, Ahmedabad',

@@ -36,7 +36,7 @@ This folder is ready for Netlify: its own `netlify.toml` builds it. The API runs
 ```bash
 npm install
 npx netlify-cli login                        # opens the browser once
-npx netlify-cli init                         # "Create & configure a new project", pick your team and a site name
+npx netlify-cli link --id 3c907e66-d43a-4537-af67-19800e2a3b62   # the timely-bubblegum-1f249e project
 npx netlify-cli env:set ADMIN_PASSWORD "choose-a-strong-one"
 npx netlify-cli deploy --build --prod
 ```
@@ -45,7 +45,7 @@ Your site is then live at `https://<site-name>.netlify.app`, with the admin at `
 
 **B. From GitHub:** push the repo, then in Netlify choose **Add new project → Import an existing project**, pick the repo, set **Base directory** to `netlify-site`, and deploy; the other build settings come from `netlify.toml`. Then open **Project configuration → Environment variables**, add `ADMIN_PASSWORD`, and redeploy.
 
-This copy is set up for **https://bricssports.netlify.app** (Netlify project ID `9328404b-5eb1-4370-a22e-32edff6353a5`): the QR code points there by default. If you use a different address, change **Public URL** in Event control → Event settings.
+This copy is set up for **https://timely-bubblegum-1f249e.netlify.app** (Netlify project ID `3c907e66-d43a-4537-af67-19800e2a3b62`): the QR code points there by default. If you use a different address, change **Public URL** in Event control → Event settings.
 
 | Env var | Default | Purpose |
 |---|---|---|
@@ -53,7 +53,7 @@ This copy is set up for **https://bricssports.netlify.app** (Netlify project ID 
 | `SESSION_SECRET` | derived from the password | Signs admin cookies. Changing the password signs everyone out |
 | `PORT` | `8787` | HTTP port |
 | `DATA_FILE` | `./data/live-state.json` | Where live state is stored (Node server; Netlify uses Blobs) |
-| `EVENT_TIMEZONE`, `EVENT_START_DATE`, `EVENT_NAME`, `PUBLIC_URL` | `Asia/Kolkata`, `2026-10-12`, `BRICS Traditional & Indigenous Sports 2026`, `bricssports.netlify.app` | First-boot seed only. After that, edit them in Event control |
+| `EVENT_TIMEZONE`, `EVENT_START_DATE`, `EVENT_NAME`, `PUBLIC_URL` | `Asia/Kolkata`, `2026-10-12`, `BRICS Traditional & Indigenous Sports 2026`, `timely-bubblegum-1f249e.netlify.app` | First-boot seed only. After that, edit them in Event control |
 
 **Preview a moment in the event:** add `?at=2026-10-12T10:32` to any public URL. The clock starts at that event-local time and keeps running.
 
