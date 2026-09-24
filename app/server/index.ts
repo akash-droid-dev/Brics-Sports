@@ -2,7 +2,7 @@ import express, { type Request, type Response } from 'express';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { SESSIONS, VENUES, countryById, hhmm, sportById, venueById, type UpdateType, type VenueId } from '../shared/data.ts';
+import { SESSIONS, VENUES, ampm, sportById, venueById, type UpdateType, type VenueId } from '../shared/data.ts';
 import { UPDATE_TYPES, isValidTimeZone } from '../shared/live.ts';
 import { isAdmin, login, logout, requireAdmin } from './auth.ts';
 import { store } from './store.ts';
@@ -60,7 +60,7 @@ admin.put('/announcement', (req, res) => {
 
 const sessionName = (id: string) => {
   const s = SESSIONS.find((x) => x.id === id)!;
-  return s.sport ? sportById(s.sport)!.name : countryById(s.country).name + ' showcase';
+  return s.sport ? sportById(s.sport)!.name : s.title;
 };
 
 admin.post('/sessions/:id', (req: Request<{ id: string }>, res) => {
@@ -91,11 +91,11 @@ admin.post('/sessions/:id', (req: Request<{ id: string }>, res) => {
     s.overrides[base.id] = next;
     if (!notify) return;
     const title = next.venue !== venue
-      ? `${name} moved from ${vFrom.short} to ${vTo.name}` + (delta ? `, now ${hhmm(next.start)}` : '')
-      : `${name} at ${vFrom.short} now starts ${hhmm(next.start)}`;
+      ? `${name} moved from ${vFrom.short} to ${vTo.name}` + (delta ? `, now ${ampm(next.start)}` : '')
+      : `${name} at ${vFrom.short} now starts ${ampm(next.start)}`;
     const body = delta
       ? `${delta > 0 ? 'Delayed' : 'Brought forward'} by ${Math.abs(delta)} minutes. All other sessions run on time.`
-      : `Same time, ${hhmm(next.start)}. Follow signs to the ${vTo.name}.`;
+      : `Same time, ${ampm(next.start)}. Follow signs to the ${vTo.name}.`;
     s.updates.unshift({ id: randomUUID(), type: 'Schedule change', at: Date.now(), title, body });
   });
   res.json(store.get());

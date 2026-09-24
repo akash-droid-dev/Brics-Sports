@@ -4,7 +4,7 @@ This folder is a copy of `../app` adapted for Netlify's free plan. Keep developi
 
 The public Live Hub website and its Event Control admin, built from the Claude Design handoff (`../project/Event Live Hub Website.dc.html`).
 
-- **Public site** (`/`): Live now, Schedule, Countries, 30 Sports, Venue map (3D) and Updates. LIVE badges, countdowns, progress bars and the now-line all follow the real clock in the event's time zone.
+- **Public site** (`/`): Live now, Schedule, Countries, Sports, Venue map (3D), Updates and About us. LIVE badges, countdowns, progress bars and the now-line all follow the real clock in the event's time zone.
 - **Event control** (`/admin`): password sign-in. From here you can publish or take down the announcement banner, delay or move sessions (and optionally post a schedule-change update automatically), post or remove live updates, and edit the event name, URL, dates and time zone. It also shows the real, scannable QR code, which you can copy or download as SVG, plus a publish log.
 - **Live push**: every change goes out to all open pages over Server-Sent Events, with no reload. Visitors see a "Live update" toast.
 
@@ -53,13 +53,14 @@ This copy is set up for **https://bricssports.netlify.app** (Netlify project ID 
 | `SESSION_SECRET` | derived from the password | Signs admin cookies. Changing the password signs everyone out |
 | `PORT` | `8787` | HTTP port |
 | `DATA_FILE` | `./data/live-state.json` | Where live state is stored (Node server; Netlify uses Blobs) |
-| `EVENT_TIMEZONE`, `EVENT_START_DATE`, `EVENT_NAME`, `PUBLIC_URL` | `UTC`, `2026-10-15`, `BRICS SPORTS`, `bricssports.netlify.app` | First-boot seed only. After that, edit them in Event control |
+| `EVENT_TIMEZONE`, `EVENT_START_DATE`, `EVENT_NAME`, `PUBLIC_URL` | `Asia/Kolkata`, `2026-10-12`, `BRICS Traditional & Indigenous Sports 2026`, `bricssports.netlify.app` | First-boot seed only. After that, edit them in Event control |
 
-**Preview a moment in the event:** add `?at=2026-10-16T14:42` to any public URL. The clock starts at that event-local time and keeps running.
+**Preview a moment in the event:** add `?at=2026-10-12T10:32` to any public URL. The clock starts at that event-local time and keeps running.
 
 ## Notes
 
-- Countries, sports, venues, the programme and the six sample updates are sample content from the design. They live in `shared/data.ts`. The sample updates appear on Day 2 at their listed times.
-- The Sumo clips (the Live Now card, the Sumo sport page and the first cultural story) come from the Claude Design pack. They're bundled in `public/media` as MP4 (for all browsers, including iPhone) and WebM, so they play offline. Other photos and clips load from Wikimedia Commons, and fonts load from Google Fonts.
-- The Live Now card always shows footage. It leads with Sumo when Sumo is live, otherwise another live session with a clip. When nothing is live it shows the next session with a clip, badged **UP NEXT** rather than LIVE.
+- Content lives in `shared/data.ts`: the 11 participating countries (flags in `public/flags`, from the MIT-licensed flag-icons set), 33 traditional sports, and the 12 October 2026 show flow. The seven demonstration slots run in `DEMO_ORDER`; change that list to change which countries present and in what order. After changing the programme, bump `SEED_VERSION` on the server so stored schedule changes for old items are cleared.
+- Brand assets live in `public/brand`: the page background (world map and ribbons), the home banner, the logo and the mascot (background removed). Set the mascot's name in `MASCOT.name` in `shared/data.ts`.
+- Sports have no photos or clips yet, so cards use each country's flag as artwork. Add a `photo` or `video` to a sport in `shared/data.ts` and it is used automatically. Flags that carry sacred inscriptions (Saudi Arabia, Iran) are shown only as badges, never as tinted background art.
+- The Live Now card leads with the country demonstration that is live, otherwise whatever is on, otherwise the next item, badged **UP NEXT** rather than LIVE.
 - The API lives in `server/core.ts` as a plain `Request → Response` handler, shared by the Node server (`server/index.ts`: JSON file + instant push) and Netlify (`netlify/functions/api.ts`: Blobs + 5-second refresh). Writes are conditional, so two admins publishing at once don't overwrite each other.
