@@ -92,6 +92,16 @@ img { max-width: 100%; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 8px 0; flex-shrink: 0; }
 .brand:hover { text-decoration: none; }
 .brand-logo { height: 50px; width: auto; display: block; }
+/* The logo is two layers: the ring of sports turns slowly, the wordmark stays still. */
+.logo { position: relative; display: block; flex-shrink: 0; aspect-ratio: 1152 / 397; }
+.logo-ring { position: absolute; left: -0.608%; top: -2.015%; width: 35.938%; height: auto; animation: ftsSpin 24s linear infinite; }
+.logo-word { position: absolute; left: 34.462%; top: 0; width: 65.538%; height: 100%; }
+@media (prefers-reduced-motion: reduce) { .logo-ring { animation: none; } }
+
+/* Sticky Back button on every inner page, just under the header. */
+.back-dock { position: sticky; top: calc(var(--hdr-h, 78px) + 12px); z-index: 40; height: 0; pointer-events: none; }
+.back-dock .back { pointer-events: auto; background: rgba(12,24,48,.8); box-shadow: 0 6px 18px rgba(12,24,48,.25); }
+main.has-back .band-in { padding-top: calc(clamp(40px, 5vw, 64px) + 44px); }
 .brand-mascot { height: 60px; width: auto; display: block; margin-bottom: -6px; animation: ftsFloat 4s ease-in-out infinite; }
 .nav { display: flex; gap: 2px; flex: 1 1 520px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .nav::-webkit-scrollbar { display: none; }
@@ -145,10 +155,27 @@ img { max-width: 100%; }
 .feature-art { position: absolute; inset: 0; animation: ftsKen 18s ease-in-out infinite alternate; }
 /* YouTube as a cover-fit background: scale the 16:9 player to fill the card, then crop. */
 .yt-bg { position: absolute; top: 50%; left: 50%; width: max(100%, calc(100cqh * 16 / 9)); height: max(100%, calc(100cqw * 9 / 16)); transform: translate(-50%, -50%); border: 0; pointer-events: none; }
-.yt-full { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; z-index: 5; background: #000; }
-.yt-close { position: absolute; top: 16px; right: 16px; z-index: 6; }
-.feature.theater { cursor: default; }
-.feature.theater > :not(iframe):not(.yt-close) { display: none; }
+.yt-bg.vertical { width: max(100%, calc(100cqh * 9 / 16)); height: max(100%, calc(100cqw * 16 / 9)); }
+
+/* Big-screen player: YouTube's own player on top, our controls in a bar below it (never over it). */
+.vt { position: fixed; inset: 0; z-index: 200; background: #05080F; color: #fff; display: flex; flex-direction: column; }
+.vt-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px max(16px, env(safe-area-inset-left)) 10px 16px; }
+.vt-title { font-weight: 700; font-size: 15px; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.vt-live { background: var(--red); border-radius: 5px; padding: 3px 7px; font-size: 11px; letter-spacing: .1em; flex-shrink: 0; }
+.vt-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; container-type: size; padding: 0 12px; }
+.vt-frame { position: relative; width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9; background: #000; }
+.vt-frame.vertical { width: min(100cqw, calc(100cqh * 9 / 16)); aspect-ratio: 9 / 16; }
+.vt-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.vt-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); background: #0C1830; flex-wrap: wrap; }
+.vt-btn { display: inline-flex; align-items: center; gap: 6px; height: 40px; min-width: 40px; justify-content: center; padding: 0 12px; border-radius: 20px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); color: #fff; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.vt-btn:hover:not(:disabled) { background: rgba(255,255,255,.22); }
+.vt-btn:disabled { opacity: .4; cursor: default; }
+.vt-play { background: var(--red); border-color: transparent; min-width: 48px; }
+.vt-play:hover:not(:disabled) { background: #c42621; }
+.vt-time { font-size: 13px; min-width: 44px; opacity: .9; }
+.vt-seek { flex: 1 1 160px; min-width: 120px; accent-color: var(--red); height: 24px; }
+@media (max-width: 640px) { .vt-lbl { display: none; } .vt-btn { padding: 0 10px; } .vt-seek { order: 10; flex-basis: 100%; } }
+
 .feature video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .glass-pill { display: flex; align-items: center; gap: 7px; background: rgba(12,24,48,.55); backdrop-filter: blur(8px); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 22px; padding: 8px 15px; font-size: 14px; font-weight: 600; }
 .glass-pill:hover { color: #fff; text-decoration: none; }
@@ -202,10 +229,10 @@ img { max-width: 100%; }
 .chip:hover { border-color: var(--navy); }
 .chip.on { background: var(--navy); color: #fff; border-color: var(--navy); }
 
-.back { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 12px; border-radius: 20px; background: rgba(12,24,48,.5); backdrop-filter: blur(8px); font-size: 14px; font-weight: 600; color: #fff; }
+.back { cursor: pointer; border: 0; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 12px; border-radius: 20px; background: rgba(12,24,48,.5); backdrop-filter: blur(8px); font-size: 14px; font-weight: 600; color: #fff; }
 
 /* ---------- map ---------- */
-.map-stage { flex: 1.3 1 520px; min-width: 0; position: sticky; top: 100px; border-radius: 24px; background: linear-gradient(160deg, #173F73, #0C1830); overflow: hidden; height: 600px; perspective: 1100px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg); }
+.map-stage { flex: 1.3 1 520px; min-width: 0; position: sticky; top: calc(var(--hdr-h, 78px) + 64px); border-radius: 24px; background: linear-gradient(160deg, #173F73, #0C1830); overflow: hidden; height: 600px; perspective: 1100px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg); }
 .map-board { width: 300px; height: 300px; position: relative; transform-style: preserve-3d; transform: scale(1.35) rotateX(58deg) rotateZ(-38deg); }
 @media (max-width: 640px) { .map-stage { height: 440px; position: relative; top: 0; } .map-board { transform: scale(.95) rotateX(58deg) rotateZ(-38deg); } }
 

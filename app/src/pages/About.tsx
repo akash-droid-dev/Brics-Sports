@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { MASCOT, flagUrl } from '../../shared/data.ts';
+import { MASCOT, MASCOT_ABOUT, flagUrl } from '../../shared/data.ts';
 import { BRAND, useHub } from '../lib/hub.tsx';
-import { PageHead, Stripe } from '../components/chrome.tsx';
+import { Logo, PageHead, Stripe } from '../components/chrome.tsx';
 
 const PIB = 'https://www.pib.gov.in/PressReleasePage.aspx?PRID=2302494&lang=2&reg=48';
 
@@ -22,7 +22,7 @@ export default function About() {
   return (
     <div className="page">
       <PageHead small eyebrow="About us" title="About BRICS Traditional & Indigenous Sports 2026"
-        right={<img src="/brand/logo-120.png" alt="BRICS Traditional & Indigenous Sports 2026 logo" style={{ height: 96, width: 'auto' }} />}>
+        right={<Logo height={96} />}>
         Celebrating living traditions through sport
       </PageHead>
 
@@ -112,9 +112,9 @@ export default function About() {
           <img src={MASCOT.image} alt={MASCOT.name ? `${MASCOT.name}, the event mascot` : 'The event mascot'} style={{ maxHeight: 300 }} />
           <div>
             <div className="eyebrow">Meet our mascot</div>
-            <h2 className="h2" style={{ marginTop: 8 }}>{MASCOT.name ? `This is our Mascot, ${MASCOT.name}!` : 'This is our Mascot!'}</h2>
+            <h2 className="h2" style={{ marginTop: 8 }}>{`This is our Mascot, ${MASCOT.name}!`}</h2>
             <Stripe />
-            <p className="lede" style={{ marginTop: 14 }}>Look out for our mascot at the venue, welcoming delegations and visitors throughout the day.</p>
+            <p className="lede" style={{ marginTop: 14 }}>{MASCOT_ABOUT}</p>
           </div>
         </section>
       </div>
