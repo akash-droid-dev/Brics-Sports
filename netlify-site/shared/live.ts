@@ -1,5 +1,5 @@
 // Live state shared by the server (source of truth) and the browser (read-only mirror).
-import type { Country, Sport, UpdateType, VenueId } from './data.ts';
+import type { Country, SiteImageKey, Sport, UpdateType, VenueId } from './data.ts';
 
 export interface Announcement { on: boolean; title: string; body: string }
 
@@ -17,6 +17,8 @@ export interface Settings {
   qrImage?: string | null;
   /** The mascot as edited in Event control. `image` null uses the built-in artwork. */
   mascot?: Mascot;
+  /** Site artwork replaced in Event control (see SITE_IMAGES); a missing or null entry uses the built-in. */
+  images?: Partial<Record<SiteImageKey, string | null>>;
 }
 
 export interface Mascot { name: string; about: string; image: string | null }

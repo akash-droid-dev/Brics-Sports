@@ -77,7 +77,7 @@
 .adm-input:focus { outline: none; border-color: var(--amber); }
 .adm-editor { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 14px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.1); }
 .adm-img { display: flex; gap: 12px; align-items: flex-start; }
-.adm-img-prev { width: 120px; height: 84px; border-radius: 10px; flex-shrink: 0; background: rgba(255,255,255,.06) center/cover no-repeat; border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center; font-size: 11px; color: rgba(244,238,228,.5); }
+.adm-img-prev { width: 120px; height: 84px; border-radius: 10px; flex-shrink: 0; background: rgba(255,255,255,.06) center/contain no-repeat; border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center; font-size: 11px; color: rgba(244,238,228,.5); }
 .adm-thumb { width: 64px; height: 42px; border-radius: 7px; flex-shrink: 0; background: rgba(255,255,255,.06) center/cover no-repeat; display: flex; align-items: center; justify-content: center; font-size: 10px; color: rgba(244,238,228,.5); text-align: center; }
 .adm-qr .qr-btn { background: #173F73; color: #fff; border-color: transparent; }
 .adm-qr .qr-btn.ghost { background: transparent; color: #173F73; border-color: rgba(23,63,115,.3); }

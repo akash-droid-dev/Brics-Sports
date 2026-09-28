@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { ampm, assetUrl } from '../../shared/data.ts';
-import { BRAND, useHub, useMascot, useStored } from '../lib/hub.tsx';
+import { BRAND, useHub, useMascot, useSiteImages, useStored } from '../lib/hub.tsx';
 
 export const NAV: [string, string][] = [['/', 'Live now'], ['/schedule', 'Schedule'], ['/countries', 'Countries'], ['/sports', 'Sports'], ['/map', 'Venue map'], ['/updates', 'Updates'], ['/about', 'About us']];
 
@@ -14,6 +14,8 @@ export function Stripe({ width = 120, style }: { width?: number; style?: React.C
 
 /** Official event logo (ring of sports + BRICS wordmark); the ring turns slowly. `mark` shows only the ring. */
 export function Logo({ height = 50, mark = false }: { height?: number; mark?: boolean }) {
+  const custom = useSiteImages().logo;
+  if (custom && !mark) return <img src={custom} alt="BRICS Traditional & Indigenous Sports 2026, Amdavad, India" className="brand-logo" style={{ height, width: 'auto' }} />;
   return mark
     ? <img src={assetUrl('/brand/logo-mark.png')} alt="" height={height} width={height} style={{ height, width: height, display: 'block' }} />
     : (
@@ -55,6 +57,7 @@ export function useUnseenUpdates() {
 export function Header() {
   const { live, clock, days } = useHub();
   const mascot = useMascot();
+  const images = useSiteImages();
   const { unseen } = useUnseenUpdates();
   const { pathname } = useLocation();
   const one = days.length === 1;
@@ -76,7 +79,7 @@ export function Header() {
       <div className="wrap hdr-in">
         <Link to="/" className="brand" aria-label="Home">
           <Logo />
-          <img src={mascot.thumb} alt={`${mascot.name}, our mascot`} className="brand-mascot" />
+          <img src={images.headerMascot} alt={`${mascot.name}, our mascot`} className="brand-mascot" />
         </Link>
         <nav className="nav" aria-label="Main">
           {NAV.map(([to, label]) => {

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  COUNTRIES, EVENT_DAYS, MASCOT, MASCOT_ABOUT, SESSIONS, SPORTS, VENUES, ampm, apiUrl, assetUrl, flagUrl, venueById,
+  COUNTRIES, EVENT_DAYS, MASCOT, MASCOT_ABOUT, SESSIONS, SITE_IMAGES, SPORTS, VENUES, ampm, apiUrl, assetUrl, flagUrl, venueById,
   type Country, type Session, type Sport, type VenueId,
 } from '../../shared/data.ts';
 import { dayDateLabel, eventClock, zonedToEpoch, type EventClock, type LiveState, type LiveUpdate } from '../../shared/live.ts';
@@ -86,7 +86,23 @@ const plainFlagArt = (c: Country) => c.inscribed
 /** A sport's artwork: its photo when set, over the country art, so a photo that fails to load still looks designed. */
 export const artBg = (photo: string | null | undefined, c: Country) => (photo ? `url("${assetUrl(photo)}") center/cover no-repeat, ${flagArt(c)}` : flagArt(c));
 /** Artwork for ceremony items: the event banner. */
-export const BANNER_ART = `linear-gradient(180deg, rgba(12,24,48,.05), rgba(12,24,48,.35)), url("${assetUrl('/brand/banner-1200.jpg')}") center/cover no-repeat, #fff`;
+export const bannerArt = (banner: string) => `linear-gradient(180deg, rgba(12,24,48,.05), rgba(12,24,48,.35)), url("${banner}") center/cover no-repeat, #fff`;
+
+/** Site artwork: what Event control uploaded, or the built-in files. */
+export function useSiteImages() {
+  const img = useHub().settings.images ?? {};
+  const pick = (k: keyof typeof SITE_IMAGES, mobile = false) => {
+    if (img[k]) return assetUrl(img[k]);
+    const d = SITE_IMAGES[k] as { file: string | null; mobile?: string };
+    return assetUrl((mobile && d.mobile) || d.file);
+  };
+  return {
+    banner: pick('banner'), bannerMobile: pick('banner', true), custom: { banner: !!img.banner, background: !!img.background },
+    bannerMascot: pick('bannerMascot'), headerMascot: pick('headerMascot'),
+    background: pick('background'), backgroundMobile: pick('background', true),
+    logo: img.logo ? assetUrl(img.logo) : null,
+  };
+}
 
 /** The mascot as set in Event control, falling back to the built-in artwork. */
 export function useMascot() {
@@ -96,7 +112,6 @@ export function useMascot() {
     name: m?.name || MASCOT.name,
     about: m ? m.about : MASCOT_ABOUT,
     image: custom ?? assetUrl(MASCOT.image),
-    thumb: custom ?? assetUrl(MASCOT.thumb),
   };
 }
 export const BRAND = { navy: '#173F73', ink: '#1C2434', muted: '#5B6577', orange: '#F28C28', red: '#E1302A', green: '#1FA650', yellow: '#F9C512', blue: '#2C4C9C' };
@@ -130,7 +145,7 @@ function sessionView(s: Session, state: LiveState, clock: EventClock, L: Lookup)
       ? `${s.slot === 1 ? 'Transition to the Demonstration Games. ' : ''}Country ${s.slot}: ${c ? `${c.name} presents ${L.sportsOf(c.id).map((x) => x.name).join(', ') || 'traditional sports'}.` : 'to be confirmed.'}`
       : s.brief,
     kind: s.kind,
-    bg: c ? flagArt(c) : BANNER_ART, video: sp?.video,
+    bg: c ? flagArt(c) : bannerArt(assetUrl(state.settings.images?.banner || SITE_IMAGES.banner.mobile)), video: sp?.video,
     isLive: st === 'live', stLabel, stBg: colors[0], stFg: colors[1], op: st === 'done' ? 0.55 : 1,
     border: st === 'live' ? `1.5px solid ${BRAND.red}` : o.changed ? `1.5px solid ${BRAND.orange}` : '1px solid rgba(23,63,115,.12)',
     pct: pct.toFixed(2) + '%', left: Math.floor(leftS / 60) + ':' + String(leftS % 60).padStart(2, '0'), changed: !!o.changed,

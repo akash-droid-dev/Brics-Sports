@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { embedUrl, parseYouTube } from '../../shared/youtube.ts';
 import { VideoTheater } from '../components/VideoPlayer.tsx';
-import { FACILITIES, VENUES, assetUrl, flagUrl } from '../../shared/data.ts';
-import { BRAND, ampmRange, flagArt, useHub, type SessionView, useMascot } from '../lib/hub.tsx';
+import { FACILITIES, VENUES, flagUrl } from '../../shared/data.ts';
+import { BRAND, ampmRange, flagArt, useHub, type SessionView, useMascot, useSiteImages } from '../lib/hub.tsx';
 import { Clip } from '../components/Clip.tsx';
 import { PinIcon, Stripe, useUnseenUpdates } from '../components/chrome.tsx';
 
@@ -30,17 +30,18 @@ export default function Home() {
 function Banner() {
   const { settings } = useHub();
   const mascot = useMascot();
+  const images = useSiteImages();
   return (
     <section className="banner" aria-label={settings.eventName}>
       <div className="banner-img-wrap">
         <picture>
-          <source media="(max-width: 900px)" srcSet={assetUrl('/brand/banner-1200.jpg')} />
-          <img className="banner-img" src={assetUrl('/brand/banner.jpg')} alt="BRICS Traditional & Indigenous Sports 2026: Resilience, Innovation, Cooperation, Sustainability" />
+          <source media="(max-width: 900px)" srcSet={images.bannerMobile} />
+          <img className="banner-img" src={images.banner} alt={`${settings.eventName}: ${settings.place}`} />
         </picture>
       </div>
       <div className="banner-mascot">
         <div className="bubble">Namaste! I am {mascot.name}!</div>
-        <img src={mascot.image} alt="" />
+        <img src={images.bannerMascot} alt="" />
       </div>
     </section>
   );

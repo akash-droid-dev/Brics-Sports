@@ -1,7 +1,7 @@
 // The Live Hub API as a plain Web `Request → Response` handler, so the same code runs on the
 // Node server (server/index.ts) and as a Netlify Function (netlify/functions/api.ts).
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { COUNTRIES, DEFAULT_ANNOUNCEMENT, DEFAULT_VIDEOS, MASCOT, MASCOT_ABOUT, SAMPLE_UPDATES, SESSIONS, SPORTS, SPORT_TYPES, ampm, venueById, type Country, type Sport, type SportType, type UpdateType, type VenueId } from '../shared/data.ts';
+import { COUNTRIES, DEFAULT_ANNOUNCEMENT, DEFAULT_VIDEOS, MASCOT, MASCOT_ABOUT, SITE_IMAGE_KEYS, SAMPLE_UPDATES, SESSIONS, SPORTS, SPORT_TYPES, ampm, venueById, type Country, type Sport, type SportType, type UpdateType, type VenueId } from '../shared/data.ts';
 import { UPDATE_TYPES, addDays, isValidTimeZone, zonedToEpoch, type LiveState, type LogEntry } from '../shared/live.ts';
 import { parseYouTube } from '../shared/youtube.ts';
 
@@ -43,6 +43,7 @@ function upgrade(state: LiveState) {
   if (state.liveVideo === undefined) state.liveVideo = state.videos[0]?.id ?? null;
   state.settings.qrImage ??= null;
   state.settings.mascot ??= defaultMascot();
+  state.settings.images ??= {};
 }
 
 export type Env = Record<string, string | undefined>;
@@ -60,7 +61,7 @@ export function seed(env: Env): Doc {
     id: u.id, type: u.type, title: u.title, body: u.body,
     at: zonedToEpoch(addDays(settings.startDate, u.day - 1), u.t, settings.timezone),
   })).sort((a, b) => b.at - a.at);
-  return { state: { version: 1, settings: { ...settings, qrImage: null, mascot: defaultMascot() }, overrides: {}, updates, content: defaultContent(), videos: structuredClone(DEFAULT_VIDEOS), liveVideo: DEFAULT_VIDEOS[0]?.id ?? null }, log: [], seed: SEED_VERSION };
+  return { state: { version: 1, settings: { ...settings, qrImage: null, mascot: defaultMascot(), images: {} }, overrides: {}, updates, content: defaultContent(), videos: structuredClone(DEFAULT_VIDEOS), liveVideo: DEFAULT_VIDEOS[0]?.id ?? null }, log: [], seed: SEED_VERSION };
 }
 
 interface Options {
@@ -415,14 +416,31 @@ export function createApi({ store, media, env, onChange, stateHeaders = {} }: Op
       });
     }
 
+    // ---------- site artwork (banner, mascots, background, logo) ----------
+    if (method === 'PUT' && route === '/images') {
+      const b = await body();
+      const next: Record<string, string | null> = {};
+      for (const k of SITE_IMAGE_KEYS) {
+        const v = imageRef(b[k]);
+        if (v === false) return bad('One of the image links is not valid.');
+        next[k] = v;
+      }
+      return mutateAndClean('site images updated', (s, orphan) => {
+        const prev = s.settings.images ?? {};
+        for (const k of SITE_IMAGE_KEYS) if ((prev[k] ?? null) !== next[k]) orphan(prev[k]);
+        s.settings.images = next;
+      });
+    }
+
     if (method === 'POST' && route === '/reset') {
       const { doc: prev, tag } = await current();
       const doc = seed(env);
       doc.state.version = prev.state.version + 1; // pages ignore versions older than what they hold
-      // Keep what admins curated: countries, sports, the video library, an uploaded QR and the mascot.
+      // Keep what admins curated: countries, sports, the video library, an uploaded QR, the mascot and site artwork.
       Object.assign(doc.state, { content: prev.state.content, videos: prev.state.videos, liveVideo: prev.state.liveVideo });
       doc.state.settings.qrImage = prev.state.settings.qrImage ?? null;
       doc.state.settings.mascot = prev.state.settings.mascot ?? defaultMascot();
+      doc.state.settings.images = prev.state.settings.images ?? {};
       doc.log = [{ at: Date.now(), text: 'demo content reset' }];
       await store.save(doc, tag).catch(async (e) => { if (e instanceof Conflict) await store.save(doc); else throw e; });
       await onChange?.(doc.state);
