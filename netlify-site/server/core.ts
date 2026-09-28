@@ -1,7 +1,7 @@
 // The Live Hub API as a plain Web `Request → Response` handler, so the same code runs on the
 // Node server (server/index.ts) and as a Netlify Function (netlify/functions/api.ts).
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { COUNTRIES, DEFAULT_ANNOUNCEMENT, DEFAULT_VIDEOS, SAMPLE_UPDATES, SESSIONS, SPORTS, SPORT_TYPES, ampm, venueById, type Country, type Sport, type SportType, type UpdateType, type VenueId } from '../shared/data.ts';
+import { COUNTRIES, DEFAULT_ANNOUNCEMENT, DEFAULT_VIDEOS, MASCOT, MASCOT_ABOUT, SAMPLE_UPDATES, SESSIONS, SPORTS, SPORT_TYPES, ampm, venueById, type Country, type Sport, type SportType, type UpdateType, type VenueId } from '../shared/data.ts';
 import { UPDATE_TYPES, addDays, isValidTimeZone, zonedToEpoch, type LiveState, type LogEntry } from '../shared/live.ts';
 import { parseYouTube } from '../shared/youtube.ts';
 
@@ -34,6 +34,7 @@ const MEDIA_ID = /^[a-f0-9-]{36}\.(png|jpg|webp|gif)$/;
 const MAX_UPLOAD = 4 * 1024 * 1024;
 
 const defaultContent = () => structuredClone({ countries: COUNTRIES, sports: SPORTS });
+const defaultMascot = () => ({ name: MASCOT.name, about: MASCOT_ABOUT, image: null });
 
 /** Fill in sections added after a site was first deployed, without touching what admins changed. */
 function upgrade(state: LiveState) {
@@ -41,6 +42,7 @@ function upgrade(state: LiveState) {
   state.videos ??= structuredClone(DEFAULT_VIDEOS);
   if (state.liveVideo === undefined) state.liveVideo = state.videos[0]?.id ?? null;
   state.settings.qrImage ??= null;
+  state.settings.mascot ??= defaultMascot();
 }
 
 export type Env = Record<string, string | undefined>;
@@ -58,7 +60,7 @@ export function seed(env: Env): Doc {
     id: u.id, type: u.type, title: u.title, body: u.body,
     at: zonedToEpoch(addDays(settings.startDate, u.day - 1), u.t, settings.timezone),
   })).sort((a, b) => b.at - a.at);
-  return { state: { version: 1, settings: { ...settings, qrImage: null }, overrides: {}, updates, content: defaultContent(), videos: structuredClone(DEFAULT_VIDEOS), liveVideo: DEFAULT_VIDEOS[0]?.id ?? null }, log: [], seed: SEED_VERSION };
+  return { state: { version: 1, settings: { ...settings, qrImage: null, mascot: defaultMascot() }, overrides: {}, updates, content: defaultContent(), videos: structuredClone(DEFAULT_VIDEOS), liveVideo: DEFAULT_VIDEOS[0]?.id ?? null }, log: [], seed: SEED_VERSION };
 }
 
 interface Options {
@@ -72,6 +74,17 @@ interface Options {
 }
 
 const COOKIE = 'lh_admin';
+/**
+ * Other sites may call the API (the GitHub Pages copy of the site does). Public data needs no
+ * credentials, and admin calls from there carry a bearer token instead of the cookie, so a
+ * wildcard origin is safe: without a valid token the admin routes still refuse.
+ */
+export const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+};
 const TTL = 12 * 3600 * 1000;
 const failures = new Map<string, { n: number; until: number }>();
 
@@ -99,11 +112,12 @@ export function createApi({ store, media, env, onChange, stateHeaders = {} }: Op
 
   const sign = (v: string) => createHmac('sha256', secret).update(v).digest('base64url');
   const safeEq = (a: string, b: string) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
+  const validToken = (t: string) => { const [exp, sig] = t.split('.'); return !!exp && !!sig && safeEq(sig, sign(exp)) && Number(exp) > Date.now(); };
   const isAdmin = (req: Request) => {
+    const bearer = /^Bearer\s+(\S+)$/.exec(req.headers.get('authorization') ?? '');
+    if (bearer) return validToken(bearer[1]);
     const m = new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]+)`).exec(req.headers.get('cookie') ?? '');
-    if (!m) return false;
-    const [exp, sig] = decodeURIComponent(m[1]).split('.');
-    return !!exp && !!sig && safeEq(sig, sign(exp)) && Number(exp) > Date.now();
+    return !!m && validToken(decodeURIComponent(m[1]));
   };
   const cookie = (value: string, maxAge: number) =>
     `${COOKIE}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${Math.floor(maxAge / 1000)}${secure ? '; Secure' : ''}`;
@@ -150,7 +164,14 @@ export function createApi({ store, media, env, onChange, stateHeaders = {} }: Op
     return res;
   }
 
-  return async function handle(req: Request, ip = 'unknown'): Promise<Response> {
+  async function handle(req: Request, ip = 'unknown'): Promise<Response> {
+    if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+    const res = await route(req, ip);
+    for (const [k, v] of Object.entries(CORS)) res.headers.set(k, v);
+    return res;
+  }
+
+  async function route(req: Request, ip: string): Promise<Response> {
     const url = new URL(req.url);
     const path = url.pathname.replace(/\/+$/, '');
     const method = req.method;
@@ -179,7 +200,8 @@ export function createApi({ store, media, env, onChange, stateHeaders = {} }: Op
       }
       failures.delete(ip);
       const exp = String(Date.now() + TTL);
-      return json({ ok: true }, 200, { 'Set-Cookie': cookie(`${exp}.${sign(exp)}`, TTL) });
+      const token = `${exp}.${sign(exp)}`;
+      return json({ ok: true, token }, 200, { 'Set-Cookie': cookie(token, TTL) });
     }
     if (method === 'POST' && path === '/api/admin/logout') return json({ ok: true }, 200, { 'Set-Cookie': cookie('', 0) });
 
@@ -380,13 +402,27 @@ export function createApi({ store, media, env, onChange, stateHeaders = {} }: Op
       });
     }
 
+    // ---------- mascot ----------
+    if (method === 'PUT' && route === '/mascot') {
+      const b = await body();
+      const name = str(b.name, 40), about = str(b.about, 1200), image = imageRef(b.image);
+      if (!name) return bad('The mascot needs a name.');
+      if (image === false) return bad('That image link is not valid.');
+      return mutateAndClean('mascot updated', (s, orphan) => {
+        const prev = s.settings.mascot ?? defaultMascot();
+        if (prev.image !== image) orphan(prev.image);
+        s.settings.mascot = { name, about, image };
+      });
+    }
+
     if (method === 'POST' && route === '/reset') {
       const { doc: prev, tag } = await current();
       const doc = seed(env);
       doc.state.version = prev.state.version + 1; // pages ignore versions older than what they hold
-      // Keep what admins curated: countries, sports, the video library and an uploaded QR.
+      // Keep what admins curated: countries, sports, the video library, an uploaded QR and the mascot.
       Object.assign(doc.state, { content: prev.state.content, videos: prev.state.videos, liveVideo: prev.state.liveVideo });
       doc.state.settings.qrImage = prev.state.settings.qrImage ?? null;
+      doc.state.settings.mascot = prev.state.settings.mascot ?? defaultMascot();
       doc.log = [{ at: Date.now(), text: 'demo content reset' }];
       await store.save(doc, tag).catch(async (e) => { if (e instanceof Conflict) await store.save(doc); else throw e; });
       await onChange?.(doc.state);
@@ -394,5 +430,6 @@ export function createApi({ store, media, env, onChange, stateHeaders = {} }: Op
     }
 
     return bad('Not found', 404);
-  };
+  }
+  return handle;
 }

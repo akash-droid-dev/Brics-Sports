@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  COUNTRIES, EVENT_DAYS, SESSIONS, SPORTS, VENUES, ampm, flagUrl, venueById,
+  COUNTRIES, EVENT_DAYS, MASCOT, MASCOT_ABOUT, SESSIONS, SPORTS, VENUES, ampm, apiUrl, assetUrl, flagUrl, venueById,
   type Country, type Session, type Sport, type VenueId,
 } from '../../shared/data.ts';
 import { dayDateLabel, eventClock, zonedToEpoch, type EventClock, type LiveState, type LiveUpdate } from '../../shared/live.ts';
@@ -14,9 +14,9 @@ export function useLiveState() {
     let es: EventSource | null = null;
     let fallback: ReturnType<typeof setInterval> | undefined;
     const apply = (s: LiveState) => setState((prev) => (prev && prev.version > s.version ? prev : s));
-    const poll = () => fetch('/api/state').then((r) => r.json()).then(apply).catch(() => {});
+    const poll = () => fetch(apiUrl('/api/state')).then((r) => r.json()).then(apply).catch(() => {});
     if ('EventSource' in window) {
-      es = new EventSource('/api/stream');
+      es = new EventSource(apiUrl('/api/stream'));
       es.addEventListener('state', (e) => { apply(JSON.parse((e as MessageEvent).data)); setOnline(true); });
       es.onerror = () => setOnline(false);
     } else {
@@ -77,16 +77,28 @@ export const ampmRange = (a: number, b: number) => { const x = ampm(a), y = ampm
 
 /** Artwork for a country: its flag under a tint of the country colour. */
 export const flagArt = (c: Country): string => c.image
-  ? `linear-gradient(180deg, rgba(12,24,48,.05), rgba(12,24,48,.35)), url("${c.image}") center/cover no-repeat, ${plainFlagArt(c)}`
+  ? `linear-gradient(180deg, rgba(12,24,48,.05), rgba(12,24,48,.35)), url("${assetUrl(c.image)}") center/cover no-repeat, ${plainFlagArt(c)}`
   : plainFlagArt(c);
 const plainFlagArt = (c: Country) => c.inscribed
   ? `radial-gradient(circle at 80% 20%, ${rgba('#FFFFFF', 0.16)}, transparent 55%), linear-gradient(135deg, ${c.color}, rgba(12,24,48,.92))`
   : `linear-gradient(135deg, ${rgba(c.color, 0.72)}, rgba(12,24,48,.86)), url("${flagUrl(c)}") center/cover no-repeat, ${c.color}`;
 /** Artwork for a sport: a real photo when one is set, otherwise the country flag art. */
 /** A sport's artwork: its photo when set, over the country art, so a photo that fails to load still looks designed. */
-export const artBg = (photo: string | null | undefined, c: Country) => (photo ? `url("${photo}") center/cover no-repeat, ${flagArt(c)}` : flagArt(c));
+export const artBg = (photo: string | null | undefined, c: Country) => (photo ? `url("${assetUrl(photo)}") center/cover no-repeat, ${flagArt(c)}` : flagArt(c));
 /** Artwork for ceremony items: the event banner. */
-export const BANNER_ART = 'linear-gradient(180deg, rgba(12,24,48,.05), rgba(12,24,48,.35)), url("/brand/banner-1200.jpg") center/cover no-repeat, #fff';
+export const BANNER_ART = `linear-gradient(180deg, rgba(12,24,48,.05), rgba(12,24,48,.35)), url("${assetUrl('/brand/banner-1200.jpg')}") center/cover no-repeat, #fff`;
+
+/** The mascot as set in Event control, falling back to the built-in artwork. */
+export function useMascot() {
+  const m = useHub().settings.mascot;
+  const custom = m?.image ? assetUrl(m.image) : null;
+  return {
+    name: m?.name || MASCOT.name,
+    about: m ? m.about : MASCOT_ABOUT,
+    image: custom ?? assetUrl(MASCOT.image),
+    thumb: custom ?? assetUrl(MASCOT.thumb),
+  };
+}
 export const BRAND = { navy: '#173F73', ink: '#1C2434', muted: '#5B6577', orange: '#F28C28', red: '#E1302A', green: '#1FA650', yellow: '#F9C512', blue: '#2C4C9C' };
 const KIND_COLORS: Record<string, string> = { Ceremony: BRAND.orange, Address: BRAND.navy, 'AV presentation': BRAND.blue, Cultural: BRAND.green, Break: '#9AA3B2', Demonstration: BRAND.red };
 

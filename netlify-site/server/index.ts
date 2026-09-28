@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync 
 import { dirname, join } from 'node:path';
 import { SESSIONS, VENUES } from '../shared/data.ts';
 import type { LiveState } from '../shared/live.ts';
-import { createApi, type Doc, type MediaStore, type Store } from './core.ts';
+import { CORS, createApi, type Doc, type MediaStore, type Store } from './core.ts';
 
 const env = process.env;
 if (env.NODE_ENV === 'production' && !env.ADMIN_PASSWORD) {
@@ -44,7 +44,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.get('/api/stream', async (req, res) => {
-  res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+  res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no', ...CORS });
   res.flushHeaders();
   const send = (s: LiveState) => res.write(`event: state\ndata: ${JSON.stringify(s)}\n\n`);
   const state = (await (await api(new Request('http://local/api/state'))).json()) as LiveState;

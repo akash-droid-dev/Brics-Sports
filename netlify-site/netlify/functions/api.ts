@@ -4,7 +4,7 @@
 // CDN and purged on every change, so thousands of visitors cost only a trickle of invocations.
 import { getStore } from '@netlify/blobs';
 import { purgeCache, type Config, type Context } from '@netlify/functions';
-import { Conflict, createApi, type Doc, type MediaStore, type Store } from '../../server/core.ts';
+import { CORS, Conflict, createApi, type Doc, type MediaStore, type Store } from '../../server/core.ts';
 
 const KEY = 'live-state';
 const TAG = 'live-state';
@@ -53,7 +53,7 @@ export default async (req: Request, context: Context) => {
   if (req.method === 'GET' && path === '/api/stream') {
     const state = await (await api(new Request(new URL('/api/state', req.url)))).text();
     return new Response(`retry: ${RECONNECT_MS}\nevent: state\ndata: ${state}\n\n`, {
-      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', ...CDN },
+      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', ...CDN, ...CORS },
     });
   }
   return api(req, context.ip);

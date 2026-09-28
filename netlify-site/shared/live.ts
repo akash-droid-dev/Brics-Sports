@@ -15,7 +15,11 @@ export interface Settings {
   announcement: Announcement;
   /** Uploaded QR image (/api/media/…); null shows the QR generated from publicUrl. */
   qrImage?: string | null;
+  /** The mascot as edited in Event control. `image` null uses the built-in artwork. */
+  mascot?: Mascot;
 }
+
+export interface Mascot { name: string; about: string; image: string | null }
 
 export interface Override { start?: number; end?: number; venue?: VenueId; changed?: boolean }
 

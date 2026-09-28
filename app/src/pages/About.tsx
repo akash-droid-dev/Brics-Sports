@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { MASCOT, MASCOT_ABOUT, flagUrl } from '../../shared/data.ts';
-import { BRAND, useHub } from '../lib/hub.tsx';
+import { flagUrl } from '../../shared/data.ts';
+import { BRAND, useHub, useMascot } from '../lib/hub.tsx';
 import { Logo, PageHead, Stripe } from '../components/chrome.tsx';
 
 
@@ -13,7 +13,8 @@ function Block({ children, accent = BRAND.orange }: { children: React.ReactNode;
 }
 
 export default function About() {
-  const { countries: COUNTRIES, sportsList: SPORTS, countryById, sportById } = useHub();
+  const { countries: COUNTRIES } = useHub();
+  const mascot = useMascot();
   return (
     <div className="page">
       <PageHead small eyebrow="About us" title="About BRICS Traditional & Indigenous Sports 2026"
@@ -97,12 +98,12 @@ export default function About() {
         </section>
 
         <section className="mascot-card card" style={{ gridTemplateColumns: 'minmax(160px, 240px) 1fr' }}>
-          <img src={MASCOT.image} alt={MASCOT.name ? `${MASCOT.name}, the event mascot` : 'The event mascot'} style={{ maxHeight: 300 }} />
+          <img src={mascot.image} alt={`${mascot.name}, the event mascot`} style={{ maxHeight: 300 }} />
           <div>
             <div className="eyebrow">Meet our mascot</div>
-            <h2 className="h2" style={{ marginTop: 8 }}>{`This is our Mascot, ${MASCOT.name}!`}</h2>
+            <h2 className="h2" style={{ marginTop: 8 }}>{`This is our Mascot, ${mascot.name}!`}</h2>
             <Stripe />
-            <p className="lede" style={{ marginTop: 14 }}>{MASCOT_ABOUT}</p>
+            <p className="lede" style={{ marginTop: 14 }}>{mascot.about}</p>
           </div>
         </section>
       </div>

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { embedUrl, parseYouTube } from '../../shared/youtube.ts';
 import { VideoTheater } from '../components/VideoPlayer.tsx';
-import { FACILITIES, MASCOT, MASCOT_ABOUT, VENUES, flagUrl } from '../../shared/data.ts';
-import { BRAND, ampmRange, flagArt, useHub, type SessionView } from '../lib/hub.tsx';
+import { FACILITIES, VENUES, assetUrl, flagUrl } from '../../shared/data.ts';
+import { BRAND, ampmRange, flagArt, useHub, type SessionView, useMascot } from '../lib/hub.tsx';
 import { Clip } from '../components/Clip.tsx';
 import { PinIcon, Stripe, useUnseenUpdates } from '../components/chrome.tsx';
 
@@ -26,21 +26,21 @@ export default function Home() {
   );
 }
 
-const mascotLine = () => (MASCOT.name ? `This is our Mascot, ${MASCOT.name}!` : 'This is our Mascot!');
 
 function Banner() {
   const { settings } = useHub();
+  const mascot = useMascot();
   return (
     <section className="banner" aria-label={settings.eventName}>
       <div className="banner-img-wrap">
         <picture>
-          <source media="(max-width: 900px)" srcSet="/brand/banner-1200.jpg" />
-          <img className="banner-img" src="/brand/banner.jpg" alt="BRICS Traditional & Indigenous Sports 2026: Resilience, Innovation, Cooperation, Sustainability" />
+          <source media="(max-width: 900px)" srcSet={assetUrl('/brand/banner-1200.jpg')} />
+          <img className="banner-img" src={assetUrl('/brand/banner.jpg')} alt="BRICS Traditional & Indigenous Sports 2026: Resilience, Innovation, Cooperation, Sustainability" />
         </picture>
       </div>
       <div className="banner-mascot">
-        <div className="bubble">Namaste! I am {MASCOT.name}!</div>
-        <img src={MASCOT.image} alt="" />
+        <div className="bubble">Namaste! I am {mascot.name}!</div>
+        <img src={mascot.image} alt="" />
       </div>
     </section>
   );
@@ -268,16 +268,17 @@ function Programme() {
 }
 
 function MascotAbout() {
+  const mascot = useMascot();
   return (
     <section className="wrap section">
       <div className="mascot-card card">
-        <img src={MASCOT.image} alt={MASCOT.name ? `${MASCOT.name}, the event mascot` : 'The event mascot'} />
+        <img src={mascot.image} alt={`${mascot.name}, the event mascot`} />
         <div>
           <div className="eyebrow">Meet our mascot</div>
-          <h2 className="h2" style={{ fontSize: 'clamp(34px,4.4vw,54px)', marginTop: 8 }}>{mascotLine()}</h2>
+          <h2 className="h2" style={{ fontSize: 'clamp(34px,4.4vw,54px)', marginTop: 8 }}>{`This is our Mascot, ${mascot.name}!`}</h2>
           <Stripe />
           <p className="lede" style={{ marginTop: 18 }}>
-            {MASCOT_ABOUT}
+            {mascot.about}
           </p>
           <p className="lede" style={{ marginTop: 6 }}>
             BRICS Traditional &amp; Indigenous Sports 2026 is a non-competitive cultural showcase under India's BRICS Chairship, celebrating sporting heritage, cultural diversity and the connections between communities.
