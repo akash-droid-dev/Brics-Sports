@@ -22,7 +22,11 @@ export async function api<T = LiveState>(method: string, path: string, body?: un
   const data = await r.json().catch(() => ({}));
   if (path === '/login' && r.ok) token.set(data.token ?? null);
   if (path === '/logout' || r.status === 401) token.set(null);
-  if (!r.ok) throw Object.assign(new Error(data.error ?? `Request failed (${r.status})`), { status: r.status });
+  // A 404 here means this page is newer than the server it talks to (e.g. GitHub Pages updated, Netlify not yet).
+  const msg = r.status === 404 && data.error === 'Not found'
+    ? 'This needs the latest version of the server. Redeploy the Netlify site (netlify-site folder), then try again.'
+    : data.error ?? `Request failed (${r.status})`;
+  if (!r.ok) throw Object.assign(new Error(msg), { status: r.status });
   return data as T;
 }
 
