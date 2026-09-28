@@ -1,25 +1,26 @@
-# CODING AGENTS: READ THIS FIRST
+# BRICS Traditional & Indigenous Sports 2026 · Live Hub
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+The event's live website and its **Event control** admin: 12 October 2026, Veer Savarkar Sports Complex, Ahmedabad.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+- **Live site (Netlify, site + backend):** https://timely-bubblegum-1f249e.netlify.app
+- **Live site (GitHub Pages):** https://akash-droid-dev.github.io/Brics-Sports/ (uses the Netlify backend)
+- **Event control:** add `/admin` to either address
 
-## What you should do — IMPORTANT
+## What's inside
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+| Folder | What it is |
+|---|---|
+| `netlify-site/` | The deployed version: React website + API. Runs on Netlify (Functions + Blobs), on Node, and as a static GitHub Pages build. |
+| `app/` | The same site as a plain React + Node project, for further development. |
+| `project/`, `chats/` | The original Claude Design handoff (prototypes and design chat). |
 
-**Read `project/Event Live Hub Website.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+See `netlify-site/README.md` for features, running locally and deployment details.
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+## How it's deployed
 
-## About the design files
+A push to `main` runs `.github/workflows/deploy.yml`:
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+1. **GitHub Pages** gets the website. Pages can only host static files, so this copy talks to the API on Netlify for live data, uploads and Event control.
+2. **Netlify** gets the website and the backend (API, live updates, admin, uploaded images). This step runs once a `NETLIFY_AUTH_TOKEN` secret is added; until then, deploy Netlify by hand (see `netlify-site/README.md`).
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
-
-## Bundle contents
-
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `Event Live Hub Design System` project files (HTML prototypes, assets, components)
+Both addresses show the same live content: an update published in Event control on either one appears on both.

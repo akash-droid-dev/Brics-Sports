@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
-import { MASCOT, ampm } from '../../shared/data.ts';
-import { BRAND, useHub, useStored } from '../lib/hub.tsx';
+import { ampm, assetUrl } from '../../shared/data.ts';
+import { BRAND, useHub, useMascot, useStored } from '../lib/hub.tsx';
 
 export const NAV: [string, string][] = [['/', 'Live now'], ['/schedule', 'Schedule'], ['/countries', 'Countries'], ['/sports', 'Sports'], ['/map', 'Venue map'], ['/updates', 'Updates'], ['/about', 'About us']];
 
@@ -15,11 +15,11 @@ export function Stripe({ width = 120, style }: { width?: number; style?: React.C
 /** Official event logo (ring of sports + BRICS wordmark); the ring turns slowly. `mark` shows only the ring. */
 export function Logo({ height = 50, mark = false }: { height?: number; mark?: boolean }) {
   return mark
-    ? <img src="/brand/logo-mark.png" alt="" height={height} width={height} style={{ height, width: height, display: 'block' }} />
+    ? <img src={assetUrl('/brand/logo-mark.png')} alt="" height={height} width={height} style={{ height, width: height, display: 'block' }} />
     : (
       <span className="logo brand-logo" style={{ height }} role="img" aria-label="BRICS Traditional & Indigenous Sports 2026, Amdavad, India">
-        <img className="logo-ring" src="/brand/logo-ring.png" alt="" />
-        <img className="logo-word" src="/brand/logo-word.png" alt="" />
+        <img className="logo-ring" src={assetUrl('/brand/logo-ring.png')} alt="" />
+        <img className="logo-word" src={assetUrl('/brand/logo-word.png')} alt="" />
       </span>
     );
 }
@@ -34,7 +34,7 @@ export function Qr({ url, size = 110, bg = '#FFFFFF', image }: { url: string; si
   }, [url]);
   const m = n * 0.2, o = (n - m) / 2;
   // An uploaded QR (from Event control) replaces the generated one.
-  if (image) return <img src={image} alt={`QR code for ${url}`} width={size} height={size} style={{ display: 'block', flexShrink: 0, objectFit: 'contain', background: bg }} />;
+  if (image) return <img src={assetUrl(image)} alt={`QR code for ${url}`} width={size} height={size} style={{ display: 'block', flexShrink: 0, objectFit: 'contain', background: bg }} />;
   return (
     <svg viewBox={`-2 -2 ${n + 4} ${n + 4}`} width={size} height={size} shapeRendering="crispEdges" style={{ display: 'block', flexShrink: 0 }} role="img" aria-label={`QR code for ${url}`}>
       <rect x="-2" y="-2" width={n + 4} height={n + 4} fill={bg} />
@@ -54,6 +54,7 @@ export function useUnseenUpdates() {
 
 export function Header() {
   const { live, clock, days } = useHub();
+  const mascot = useMascot();
   const { unseen } = useUnseenUpdates();
   const { pathname } = useLocation();
   const one = days.length === 1;
@@ -75,7 +76,7 @@ export function Header() {
       <div className="wrap hdr-in">
         <Link to="/" className="brand" aria-label="Home">
           <Logo />
-          <img src={MASCOT.thumb} alt={MASCOT.name ? `${MASCOT.name}, our mascot` : 'Our mascot'} className="brand-mascot" />
+          <img src={mascot.thumb} alt={`${mascot.name}, our mascot`} className="brand-mascot" />
         </Link>
         <nav className="nav" aria-label="Main">
           {NAV.map(([to, label]) => {

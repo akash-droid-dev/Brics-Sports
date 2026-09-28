@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
+import { assetUrl } from '../shared/data.ts';
 import { HubProvider, useHub, useLiveState } from './lib/hub.tsx';
+import { ScrollReveal } from './components/ScrollReveal.tsx';
 import { AnnouncementBar, BackDock, Footer, Header, LiveToast } from './components/chrome.tsx';
 import Home from './pages/Home.tsx';
 import { Countries, CountryDetail, Schedule, SportDetail, Sports } from './pages/Browse.tsx';
@@ -13,7 +15,7 @@ function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
     // The map swaps its selection in place; everything else starts at the top.
-    if (!pathname.startsWith('/map/') && !location.hash) window.scrollTo({ top: 0 });
+    if (!pathname.startsWith('/map/') && !location.hash) window.scrollTo({ top: 0, behavior: 'instant' });
   }, [pathname]);
   return null;
 }
@@ -27,7 +29,7 @@ function Title() {
 function Loading({ error }: { error?: boolean }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
-      <img src="/brand/logo-mark.png" alt="" width={96} height={96} style={{ animation: 'ftsSpin 6s linear infinite' }} />
+      <img src={assetUrl('/brand/logo-mark.png')} alt="" width={96} height={96} style={{ animation: 'ftsSpin 6s linear infinite' }} />
       <div className="mono" style={{ fontSize: 12, letterSpacing: '.14em', color: '#F28C28', textTransform: 'uppercase' }}>{error ? 'Reconnecting to the Live Hub…' : 'Loading the Live Hub…'}</div>
     </div>
   );
@@ -45,6 +47,7 @@ export default function App() {
     <HubProvider state={state}>
       <Title />
       <ScrollToTop />
+      <ScrollReveal />
       <Header />
       <AnnouncementBar />
       <main className={pathname === '/' ? undefined : 'has-back'}>

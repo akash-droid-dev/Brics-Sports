@@ -1,6 +1,6 @@
 // Event control: live video library, QR code, and the countries & sports content.
 import { useEffect, useRef, useState } from 'react';
-import { SPORT_TYPES, flagUrl, type Country, type Sport } from '../../shared/data.ts';
+import { MASCOT, MASCOT_ABOUT, SPORT_TYPES, assetUrl, flagUrl, type Country, type Sport } from '../../shared/data.ts';
 import type { LiveState } from '../../shared/live.ts';
 import { parseYouTube, thumbnail } from '../../shared/youtube.ts';
 import { useHub } from '../lib/hub.tsx';
@@ -42,7 +42,7 @@ function ImageField({ label, value, onChange, hint, lossless, fallback }: { labe
     <div className="adm-field">
       <span>{label}</span>
       <div className="adm-img">
-        <div className="adm-img-prev" style={{ backgroundImage: shown ? `url("${shown}")` : undefined }}>{!shown && 'No image'}</div>
+        <div className="adm-img-prev" style={{ backgroundImage: shown ? `url("${assetUrl(shown)}")` : undefined }}>{!shown && 'No image'}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 0 }}>
           <div className="adm-row wrap">
             <button type="button" className="adm-btn sm" disabled={busy} onClick={() => input.current?.click()}>{busy ? 'Uploading…' : value ? 'Replace…' : 'Upload…'}</button>
@@ -67,7 +67,7 @@ export function QrCard({ ctx }: { ctx: Ctx }) {
   const url = 'https://' + settings.publicUrl;
   const copy = async () => { try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { prompt('Copy the public URL', url); } };
   const download = () => {
-    if (settings.qrImage) { Object.assign(document.createElement('a'), { href: settings.qrImage, download: 'event-qr' }).click(); return; }
+    if (settings.qrImage) { Object.assign(document.createElement('a'), { href: assetUrl(settings.qrImage), download: 'event-qr' }).click(); return; }
     const svg = document.querySelector('#adm-qr svg');
     if (!svg) return;
     const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' });
@@ -102,6 +102,35 @@ export function QrCard({ ctx }: { ctx: Ctx }) {
   );
 }
 
+// ---------- mascot ----------
+
+export function MascotCard({ ctx }: { ctx: Ctx }) {
+  const saved = useHub().settings.mascot ?? { name: MASCOT.name, about: MASCOT_ABOUT, image: null };
+  const [draft, setDraft] = useState(saved);
+  // Follow changes published from elsewhere while nothing is being edited here.
+  const key = JSON.stringify(saved);
+  useEffect(() => setDraft(JSON.parse(key)), [key]);
+  const dirty = JSON.stringify(draft) !== key;
+  const save = () => ctx.run('Mascot', () => api('PUT', '/mascot', draft));
+  const restore = () => { if (confirm('Go back to the original mascot artwork, name and description?')) ctx.run('Mascot restored', () => api('PUT', '/mascot', { name: MASCOT.name, about: MASCOT_ABOUT, image: null })); };
+  return (
+    <Card n="05" color="#F28C28" title="Mascot" sub="The mascot on the home page banner, in the header and in the Meet our mascot sections.">
+      <div className="adm-editor">
+        <ImageField label="Mascot image" value={draft.image} onChange={(v) => setDraft({ ...draft, image: v })} fallback={MASCOT.image} lossless
+          hint="A PNG with a transparent background looks best. Leave empty to use the original artwork." />
+        <label className="adm-field"><span>Name</span><input className="adm-input" value={draft.name} maxLength={40} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></label>
+        <small className="adm-muted" style={{ fontSize: 12, marginTop: -6 }}>Shown as "Namaste! I am {draft.name || '…'}!" and "This is our Mascot, {draft.name || '…'}!"</small>
+        <label className="adm-field"><span>Description</span><textarea className="adm-input" rows={5} value={draft.about} maxLength={1200} onChange={(e) => setDraft({ ...draft, about: e.target.value })} /></label>
+        <div className="adm-row wrap">
+          <button className="adm-btn primary" disabled={!!ctx.busy || !dirty || !draft.name.trim()} onClick={save}>Update mascot</button>
+          {dirty && <button className="adm-btn ghost" onClick={() => setDraft(JSON.parse(key))}>Discard changes</button>}
+          <button className="adm-btn ghost" disabled={!!ctx.busy} onClick={restore}>Restore original</button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 // ---------- live video ----------
 
 export function VideosCard({ ctx }: { ctx: Ctx }) {
@@ -117,7 +146,7 @@ export function VideosCard({ ctx }: { ctx: Ctx }) {
   const setLive = (id: string | null) => ctx.run(id ? 'Live Now video changed' : 'Live Now video turned off', () => api('PUT', '/live-video', { id }));
 
   return (
-    <Card n="05" color="#E1302A" title="Live Now video" sub="Paste any YouTube link (a video, a live stream, or a channel's /live page). The one marked LIVE NOW plays in the Live Now card on the home page.">
+    <Card n="04" color="#E1302A" title="Live Now video" sub="Paste any YouTube link (a video, a live stream, or a channel's /live page). The one marked LIVE NOW plays in the Live Now card on the home page.">
       <div className="adm-list" style={{ maxHeight: 'none' }}>
         {videos.map((v) => {
           const ref = parseYouTube(v.url), on = state.liveVideo === v.id, thumb = thumbnail(ref);
@@ -273,7 +302,7 @@ export function SportsCard({ ctx }: { ctx: Ctx }) {
             {list.map((s) => (
               <div key={s.id} className="adm-sess">
                 <div className="adm-sess-main">
-                  <div className="adm-thumb" style={{ backgroundImage: s.photo ? `url("${s.photo}")` : undefined }}>{!s.photo && 'No photo'}</div>
+                  <div className="adm-thumb" style={{ backgroundImage: s.photo ? `url("${assetUrl(s.photo)}")` : undefined }}>{!s.photo && 'No photo'}</div>
                   <span className="adm-sess-t">{s.name}<small>{countryById(s.c)?.name ?? 'No country'} · {s.type}</small></span>
                 </div>
                 <div className="adm-sess-act">

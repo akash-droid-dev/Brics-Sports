@@ -1,16 +1,27 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { VENUES, ampm, type UpdateType, type VenueId } from '../../shared/data.ts';
+import { VENUES, ampm, apiUrl, assetUrl, type UpdateType, type VenueId } from '../../shared/data.ts';
 import { UPDATE_TYPES, type LiveState, type LogEntry } from '../../shared/live.ts';
 import { HubProvider, TAG_COLORS, useHub } from '../lib/hub.tsx';
-import { CountriesCard, QrCard, SportsCard, VideosCard } from './Manage.tsx';
+import { CountriesCard, MascotCard, QrCard, SportsCard, VideosCard } from './Manage.tsx';
 
-const Emblem = ({ size }: { size: number }) => <img src="/brand/logo-mark.png" alt="" width={size} height={size} style={{ display: 'block' }} />;
+const Emblem = ({ size }: { size: number }) => <img src={assetUrl('/brand/logo-mark.png')} alt="" width={size} height={size} style={{ display: 'block' }} />;
 import './admin.css';
 
+// The sign-in token is kept for this browser tab session. It lets Event control work when the
+// site and the API are on different addresses (the GitHub Pages copy), where cookies can't be used.
+const TOKEN_KEY = 'lh-admin-token';
+const token = { get: () => { try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; } }, set: (t: string | null) => { try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY); } catch { /* private mode: cookie still works on the same site */ } } };
+
 export async function api<T = LiveState>(method: string, path: string, body?: unknown): Promise<T> {
-  const r = await fetch('/api/admin' + path, { method, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined, credentials: 'same-origin' });
+  const headers: Record<string, string> = {};
+  if (body) headers['Content-Type'] = 'application/json';
+  const t = token.get();
+  if (t) headers.Authorization = `Bearer ${t}`;
+  const r = await fetch(apiUrl('/api/admin' + path), { method, headers, body: body ? JSON.stringify(body) : undefined, credentials: 'same-origin' });
   const data = await r.json().catch(() => ({}));
+  if (path === '/login' && r.ok) token.set(data.token ?? null);
+  if (path === '/logout' || r.status === 401) token.set(null);
   if (!r.ok) throw Object.assign(new Error(data.error ?? `Request failed (${r.status})`), { status: r.status });
   return data as T;
 }
@@ -85,7 +96,7 @@ function Console({ onState, onSignOut }: { onState: (s: LiveState) => void; onSi
         <div className="adm-brand"><Emblem size={34} /><div><div className="adm-kicker">Event control</div><div className="adm-name">{settings.eventName}</div></div></div>
         <div className="adm-top-r">
           <span className="adm-muted">{when} · <strong style={{ color: '#fff' }}>{live.length} live</strong></span>
-          <a href="/" target="_blank" rel="noreferrer" className="adm-btn ghost">View live site ↗</a>
+          <a href={import.meta.env.BASE_URL} target="_blank" rel="noreferrer" className="adm-btn ghost">View live site ↗</a>
           <button className="adm-btn ghost" onClick={signOut}>Sign out</button>
         </div>
       </header>
@@ -100,6 +111,7 @@ function Console({ onState, onSignOut }: { onState: (s: LiveState) => void; onSi
           <SessionsCard ctx={ctx} />
           <UpdatesCard ctx={ctx} />
           <VideosCard ctx={ctx} />
+          <MascotCard ctx={ctx} />
           <CountriesCard ctx={ctx} />
           <SportsCard ctx={ctx} />
           <SettingsCard ctx={ctx} />

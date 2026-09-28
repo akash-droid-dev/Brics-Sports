@@ -1,0 +1,81 @@
+# Publishes the site on every push to main:
+#  - GitHub Pages: the website (static), talking to the API on Netlify.
+#  - Netlify (optional): the API and admin backend, once a NETLIFY_AUTH_TOKEN secret is added.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+env:
+  # The backend the GitHub Pages site talks to. Override with a repository variable API_BASE.
+  API_BASE: ${{ vars.API_BASE || 'https://timely-bubblegum-1f249e.netlify.app' }}
+  NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID || '3c907e66-d43a-4537-af67-19800e2a3b62' }}
+
+jobs:
+  pages-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: netlify-site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: netlify-site/package-lock.json
+      - run: npm ci
+      - name: Build for GitHub Pages
+        run: npm run build
+        env:
+          PAGES_BASE: /${{ github.event.repository.name }}/
+          VITE_API_BASE: ${{ env.API_BASE }}
+      # GitHub Pages has no rewrites: serving the app for unknown paths makes deep links work.
+      - run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: netlify-site/dist
+
+  pages-deploy:
+    needs: pages-build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  netlify:
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+    steps:
+      - name: Skip when no Netlify token is configured
+        if: env.NETLIFY_AUTH_TOKEN == ''
+        run: echo "::notice::Add a NETLIFY_AUTH_TOKEN repository secret to deploy the backend to Netlify from here too."
+      - if: env.NETLIFY_AUTH_TOKEN != ''
+        uses: actions/checkout@v4
+      - if: env.NETLIFY_AUTH_TOKEN != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: netlify-site/package-lock.json
+      - name: Deploy the site and API to Netlify
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        working-directory: netlify-site
+        run: |
+          npm ci
+          npx --yes netlify-cli@latest deploy --build --prod --site "$NETLIFY_SITE_ID"

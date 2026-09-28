@@ -27,7 +27,7 @@ export function Schedule() {
       if (!target) return;
       const header = (document.querySelector('.hdr') as HTMLElement | null)?.offsetHeight ?? 80;
       const y = target.getBoundingClientRect().top + window.scrollY - header - 20;
-      window.scrollTo({ top: Math.max(0, y), behavior: jump > 1 ? 'smooth' : 'auto' });
+      window.scrollTo({ top: Math.max(0, y), behavior: jump > 1 ? 'smooth' : 'instant' });
     }, 80);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps

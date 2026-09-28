@@ -29,8 +29,25 @@ export const EVENT_DAYS = 1;
 export const DAY_START = 9 * 60;
 export const DAY_END = 15 * 60 + 30;
 
+// Where the site's files and the API live. The Netlify and Node builds serve both from the site's
+// root; the GitHub Pages build lives under /<repo>/ and talks to the Netlify API on another origin.
+let ASSET_BASE = '/', API_BASE = '';
+export function configureAssets(o: { base?: string; api?: string }) {
+  if (o.base) ASSET_BASE = o.base.endsWith('/') ? o.base : o.base + '/';
+  if (o.api !== undefined) API_BASE = o.api.replace(/\/+$/, '');
+}
+/** Full URL for an API path, e.g. "/api/state". */
+export const apiUrl = (path: string) => API_BASE + path;
+/** Resolves a stored or built-in image path: uploads come from the API, site files from the base. */
+export const assetUrl = (u: string | null | undefined): string => {
+  if (!u) return '';
+  if (u.startsWith('/api/')) return API_BASE + u;
+  if (u.startsWith('/') && !u.startsWith('//')) return ASSET_BASE + u.slice(1);
+  return u;
+};
+
 export const flagUrl = (c: Country) =>
-  c.flag || (c.iso2 ? `/flags/${c.iso2}.svg` : `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"><rect width="4" height="3" fill="${c.color}"/></svg>`)}`);
+  c.flag ? assetUrl(c.flag) : (c.iso2 ? assetUrl(`/flags/${c.iso2}.svg`) : `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"><rect width="4" height="3" fill="${c.color}"/></svg>`)}`);
 
 export const SPORT_TYPES: SportType[] = ['Wrestling', 'Combat', 'Team', 'Target', 'Strength', 'Skill', 'Equestrian'];
 
@@ -222,5 +239,6 @@ export const DEFAULT_VIDEOS = [
   { id: 'v-pkl-final-2', title: 'Kabaddi: Haryana Steelers vs Patna Pirates, PKL final', url: 'https://www.youtube.com/watch?v=y_iNp6x0EtY' },
 ];
 
+/** Built-in mascot artwork; Event control can replace the image, name and description. */
 export const MASCOT = { name: 'Mitra', image: '/brand/mascot-600.png', thumb: '/brand/mascot-160.png' };
 export const MASCOT_ABOUT = 'This mascot unites the spirit of all 11 BRICS nations in one powerful athletic character. Its form blends distinctive traits inspired by each member nation’s national animal, symbolizing strength, agility, resilience, and heritage. Every feature contributes to a unique identity that celebrates cultural diversity within a single unified form. The mascot represents cooperation, shared ambition, and the collective sporting spirit of BRICS on the global stage.';
