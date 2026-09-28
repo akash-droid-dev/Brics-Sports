@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { VENUES, ampm, apiUrl, assetUrl, type UpdateType, type VenueId } from '../../shared/data.ts';
 import { UPDATE_TYPES, type LiveState, type LogEntry } from '../../shared/live.ts';
 import { HubProvider, TAG_COLORS, useHub } from '../lib/hub.tsx';
-import { CountriesCard, MascotCard, QrCard, SportsCard, VideosCard } from './Manage.tsx';
+import { CountriesCard, MascotCard, QrCard, SiteImagesCard, SportsCard, VideosCard } from './Manage.tsx';
 
 const Emblem = ({ size }: { size: number }) => <img src={assetUrl('/brand/logo-mark.png')} alt="" width={size} height={size} style={{ display: 'block' }} />;
 import './admin.css';
@@ -112,6 +112,7 @@ function Console({ onState, onSignOut }: { onState: (s: LiveState) => void; onSi
           <UpdatesCard ctx={ctx} />
           <VideosCard ctx={ctx} />
           <MascotCard ctx={ctx} />
+          <SiteImagesCard ctx={ctx} />
           <CountriesCard ctx={ctx} />
           <SportsCard ctx={ctx} />
           <SettingsCard ctx={ctx} />
@@ -252,7 +253,7 @@ function SettingsCard({ ctx }: { ctx: Ctx }) {
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   const zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [];
   return (
-    <Card n="08" color="#9FC7A8" title="Event settings" sub="Name, web address and the dates and time zone that drive LIVE, Up next and the schedule.">
+    <Card n="09" color="#9FC7A8" title="Event settings" sub="Name, web address and the dates and time zone that drive LIVE, Up next and the schedule.">
       <div className="adm-2col">
         <label className="adm-field"><span>Event name</span><input value={f.eventName} onChange={set('eventName')} /></label>
         <label className="adm-field"><span>Public URL</span><input value={f.publicUrl} onChange={set('publicUrl')} /></label>

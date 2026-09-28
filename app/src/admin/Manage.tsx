@@ -1,6 +1,6 @@
 // Event control: live video library, QR code, and the countries & sports content.
 import { useEffect, useRef, useState } from 'react';
-import { MASCOT, MASCOT_ABOUT, SPORT_TYPES, assetUrl, flagUrl, type Country, type Sport } from '../../shared/data.ts';
+import { MASCOT, MASCOT_ABOUT, SITE_IMAGES, SITE_IMAGE_KEYS, SPORT_TYPES, assetUrl, flagUrl, type Country, type Sport } from '../../shared/data.ts';
 import type { LiveState } from '../../shared/live.ts';
 import { parseYouTube, thumbnail } from '../../shared/youtube.ts';
 import { useHub } from '../lib/hub.tsx';
@@ -114,10 +114,10 @@ export function MascotCard({ ctx }: { ctx: Ctx }) {
   const save = () => ctx.run('Mascot', () => api('PUT', '/mascot', draft));
   const restore = () => { if (confirm('Go back to the original mascot artwork, name and description?')) ctx.run('Mascot restored', () => api('PUT', '/mascot', { name: MASCOT.name, about: MASCOT_ABOUT, image: null })); };
   return (
-    <Card n="05" color="#F28C28" title="Mascot" sub="The mascot on the home page banner, in the header and in the Meet our mascot sections.">
+    <Card n="05" color="#F28C28" title="Mascot" sub="The mascot's name and description, and the picture in the Meet our mascot sections. The banner and header mascots are under Site images.">
       <div className="adm-editor">
         <ImageField label="Mascot image" value={draft.image} onChange={(v) => setDraft({ ...draft, image: v })} fallback={MASCOT.image} lossless
-          hint="A PNG with a transparent background looks best. Leave empty to use the original artwork." />
+          hint="Shown in the Meet our mascot sections (home and About us). A PNG with a transparent background looks best." />
         <label className="adm-field"><span>Name</span><input className="adm-input" value={draft.name} maxLength={40} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></label>
         <small className="adm-muted" style={{ fontSize: 12, marginTop: -6 }}>Shown as "Namaste! I am {draft.name || '…'}!" and "This is our Mascot, {draft.name || '…'}!"</small>
         <label className="adm-field"><span>Description</span><textarea className="adm-input" rows={5} value={draft.about} maxLength={1200} onChange={(e) => setDraft({ ...draft, about: e.target.value })} /></label>
@@ -125,6 +125,30 @@ export function MascotCard({ ctx }: { ctx: Ctx }) {
           <button className="adm-btn primary" disabled={!!ctx.busy || !dirty || !draft.name.trim()} onClick={save}>Update mascot</button>
           {dirty && <button className="adm-btn ghost" onClick={() => setDraft(JSON.parse(key))}>Discard changes</button>}
           <button className="adm-btn ghost" disabled={!!ctx.busy} onClick={restore}>Restore original</button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ---------- site images ----------
+
+export function SiteImagesCard({ ctx }: { ctx: Ctx }) {
+  const saved = useHub().settings.images ?? {};
+  const key = JSON.stringify(Object.fromEntries(SITE_IMAGE_KEYS.map((k) => [k, saved[k] ?? null])));
+  const [draft, setDraft] = useState<Record<string, string | null>>(() => JSON.parse(key));
+  useEffect(() => setDraft(JSON.parse(key)), [key]);
+  const dirty = JSON.stringify(draft) !== key;
+  return (
+    <Card n="06" color="#2C4C9C" title="Site images" sub="The banner, mascots, background and logo. Upload or paste a link to replace one; Remove goes back to the original.">
+      <div className="adm-editor">
+        {SITE_IMAGE_KEYS.map((k) => {
+          const d = SITE_IMAGES[k];
+          return <ImageField key={k} label={d.label} value={draft[k]} onChange={(v) => setDraft({ ...draft, [k]: v })} fallback={d.file ?? '/brand/logo-120.png'} hint={d.hint} lossless={d.lossless} />;
+        })}
+        <div className="adm-row wrap">
+          <button className="adm-btn primary" disabled={!!ctx.busy || !dirty} onClick={() => ctx.run('Site images', () => api('PUT', '/images', draft))}>Update site images</button>
+          {dirty && <button className="adm-btn ghost" onClick={() => setDraft(JSON.parse(key))}>Discard changes</button>}
         </div>
       </div>
     </Card>
@@ -207,7 +231,7 @@ export function CountriesCard({ ctx }: { ctx: Ctx }) {
     if (confirm(`Remove ${c.name}${n ? ` and its ${n} sport${n === 1 ? '' : 's'}` : ''}? This cannot be undone.`)) ctx.run(`${c.name} removed`, () => api('DELETE', `/countries/${encodeURIComponent(c.id)}`));
   };
   return (
-    <Card n="06" color="#1FA650" title="Countries" sub="Edit each country's name, flag, photo and introduction, add new countries or remove them. Changes appear on the site as soon as you save.">
+    <Card n="07" color="#1FA650" title="Countries" sub="Edit each country's name, flag, photo and introduction, add new countries or remove them. Changes appear on the site as soon as you save.">
       {edit ? (
         <div className="adm-editor">
           <div className="adm-label">{edit.id === 'new' ? 'New country' : `Editing ${edit.name}`}</div>
@@ -264,7 +288,7 @@ export function SportsCard({ ctx }: { ctx: Ctx }) {
   const blank = (): Sport => ({ id: 'new', c: filter !== 'all' ? filter : countries[0]?.id ?? '', name: '', type: 'Team', about: '', photo: null, photoCredit: '', photoSource: '' });
   const save = async () => { if (edit && (await ctx.run(`${edit.name} saved`, () => api('PUT', `/sports/${encodeURIComponent(edit.id)}`, edit)))) setEdit(null); };
   return (
-    <Card n="07" color="#F28C28" title="Sports" sub="Edit each sport's name, country, type, description and photo, add new sports or remove them.">
+    <Card n="08" color="#F28C28" title="Sports" sub="Edit each sport's name, country, type, description and photo, add new sports or remove them.">
       <div ref={top} />
       {edit ? (
         <div className="adm-editor">

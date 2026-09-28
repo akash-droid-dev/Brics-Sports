@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { assetUrl } from '../shared/data.ts';
-import { HubProvider, useHub, useLiveState } from './lib/hub.tsx';
+import { HubProvider, useHub, useLiveState, useSiteImages } from './lib/hub.tsx';
 import { ScrollReveal } from './components/ScrollReveal.tsx';
 import { AnnouncementBar, BackDock, Footer, Header, LiveToast } from './components/chrome.tsx';
 import Home from './pages/Home.tsx';
@@ -17,6 +17,17 @@ function ScrollToTop() {
     // The map swaps its selection in place; everything else starts at the top.
     if (!pathname.startsWith('/map/') && !location.hash) window.scrollTo({ top: 0, behavior: 'instant' });
   }, [pathname]);
+  return null;
+}
+
+/** Swaps the page background when Event control has uploaded one. */
+function SiteBackground() {
+  const { background, custom } = useSiteImages();
+  useEffect(() => {
+    const s = document.documentElement.style;
+    if (custom.background) { s.setProperty('--site-bg', `url("${background}")`); s.setProperty('--site-bg-m', `url("${background}")`); }
+    else { s.removeProperty('--site-bg'); s.removeProperty('--site-bg-m'); }
+  }, [background, custom.background]);
   return null;
 }
 
@@ -46,6 +57,7 @@ export default function App() {
   return (
     <HubProvider state={state}>
       <Title />
+      <SiteBackground />
       <ScrollToTop />
       <ScrollReveal />
       <Header />

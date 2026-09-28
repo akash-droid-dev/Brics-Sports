@@ -239,6 +239,20 @@ export const DEFAULT_VIDEOS = [
   { id: 'v-pkl-final-2', title: 'Kabaddi: Haryana Steelers vs Patna Pirates, PKL final', url: 'https://www.youtube.com/watch?v=y_iNp6x0EtY' },
 ];
 
+/**
+ * Built-in site artwork. Event control can replace each one (settings.images); `null` there means
+ * "use the built-in". The logo's built-in is the two-layer spinning logo, so it has no single file.
+ */
+export const SITE_IMAGES = {
+  banner: { label: 'Home page banner', file: '/brand/banner.jpg', mobile: '/brand/banner-1200.jpg', hint: 'The big picture at the top of the home page. A wide image, about 16:9, at least 1600 px wide.', lossless: false },
+  bannerMascot: { label: 'Banner mascot', file: '/brand/mascot-banner.png', hint: 'The mascot standing on the banner, next to "Namaste! I am …!". A tall PNG with a transparent background.', lossless: true },
+  headerMascot: { label: 'Header mascot', file: '/brand/mascot-160.png', hint: 'The small mascot beside the logo at the top of every page. A PNG with a transparent background.', lossless: true },
+  background: { label: 'Page background', file: '/brand/bg.jpg', mobile: '/brand/bg-1200.jpg', hint: 'Shown faintly behind every page. A light, calm image works best.', lossless: false },
+  logo: { label: 'Logo', file: null, hint: 'Replaces the logo in the header, footer and About page. A wide PNG with a transparent background. The original has a slowly turning ring.', lossless: true },
+} as const;
+export type SiteImageKey = keyof typeof SITE_IMAGES;
+export const SITE_IMAGE_KEYS = Object.keys(SITE_IMAGES) as SiteImageKey[];
+
 /** Built-in mascot artwork; Event control can replace the image, name and description. */
 export const MASCOT = { name: 'Mitra', image: '/brand/mascot-600.png', thumb: '/brand/mascot-160.png' };
 export const MASCOT_ABOUT = 'This mascot unites the spirit of all 11 BRICS nations in one powerful athletic character. Its form blends distinctive traits inspired by each member nation’s national animal, symbolizing strength, agility, resilience, and heritage. Every feature contributes to a unique identity that celebrates cultural diversity within a single unified form. The mascot represents cooperation, shared ambition, and the collective sporting spirit of BRICS on the global stage.';
